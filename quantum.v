@@ -9,11 +9,21 @@ Require Import ssralg.
 (*Require Import mxalgebra.*)
 Require Import eqtype.
 
-Variable R: rcfType.
+Open Scope complex_scope.
 
-Definition qubit (n: nat): Type :=
-  {m: 'M[R [i]]_(2^n, 1) | is_true ((\sum_(i < 2^n) (m i (Ordinal (ltnSn 0))))%R == 1%R) }.
+Definition abs_sqc (R: rcfType) (x: R [i]) := 
+  let: a +i* b := x in (a ^+ 2 + b ^+ 2)%R.
 
+Record qubit_mixin_of (R: rcfType) (n: nat): Type := QubitMixin {
+  vector: 'cV[R [i]]_(2 ^ n);
+  vector_is_unit: is_true ((\sum_(i < 2^n) (abs_sqc _ (vector i (Ordinal (ltnSn 0)))))%R == 1%R)
+}.
+
+Record gate_mixin_of (R: rcfType) (n: nat): Type := GateMixin {
+  gate: 'M[R [i]]_(2 ^ n);
+  (* XXX needs to be added: gate_is_unitary *)
+}.
+  
 
 
 
