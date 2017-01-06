@@ -21,9 +21,9 @@ Record qubit_mixin_of (R: rcfType) (n: nat): Type := QubitMixin {
 
 Record gate_mixin_of (R: rcfType) (n: nat): Type := GateMixin {
   gate: 'M[R [i]]_(2 ^ n);
-  (* XXX needs to be added: gate_is_unitary *)
+  thingie: is_true (unitmx gate)
 }.
-  
+
 
 
 
