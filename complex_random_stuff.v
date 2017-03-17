@@ -3,7 +3,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Variable R: rcfType.
+Parameter R: rcfType.
 
 Local Open Scope ring_scope.
 
@@ -89,24 +89,22 @@ Proof.
     rewrite cprod. unfold conjugate. unfold map_mx. apply eq_bigr. intros i _. apply mxE.
 Qed.
 
-Definition abs_sqc (R: rcfType) (x: R [i]): R := 
+Definition abs_sqc (x: R [i]): R := 
   let: (a +i* b)%C := x in a ^+ 2 + b ^+ 2.
 
-Lemma blerp: forall (x: R[i]),
-  (x * x^* = 1%:C)%C -> (abs_sqc x) = 1.
+Lemma transpose_abs: forall (x: R[i]),
+  x * (x^*)%C = ((abs_sqc x)%:C)%C.
 Proof.
-  destruct x as [a b]. unfold abs_sqc. simpc. rewrite (GRing.mulrC b a). rewrite GRing.addNr. intros.
-  unfold real_complex_def in H. inversion H. reflexivity.
+  destruct x as [a b]. unfold abs_sqc. simpc. rewrite (GRing.mulrC b a). rewrite GRing.addNr. 
+  reflexivity.
 Qed.
 
 Lemma unitary_det n (mx: 'M[R [i]]_n):
   unitarymx mx -> abs_sqc (\det mx) = 1.
 Proof.
-  move => unitary_mx. apply blerp. rewrite -conjugate_det. rewrite GRing.mulrC. rewrite -det_tr.
+  move => unitary_mx.
+  assert (((abs_sqc (\det mx))%:C) = 1%:C)%C.
+    rewrite -transpose_abs. rewrite -conjugate_det. rewrite GRing.mulrC. rewrite -det_tr.
   rewrite -det_mulmx. rewrite unitary_mx. rewrite det1. auto.
+  inversion H. reflexivity.
 Qed.
-
-(*Lemma unitary1 R n mx:
-  (@unitarymx R n mx) -> (mulmx mx (conjugate_transpose mx)) = (1%:M)%R.
-Proof.
-  move=> unitary_mx. rewrite -unitary_mx.  *)
