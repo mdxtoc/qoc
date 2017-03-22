@@ -1,4 +1,4 @@
-From mathcomp Require Import all_ssreflect all_real_closed all_algebra.
+From mathcomp Require Import all_ssreflect all_field all_real_closed all_algebra.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
@@ -7,26 +7,23 @@ Parameter R: rcfType.
 
 Local Open Scope ring_scope.
 
-Definition conjugate m n (mx: 'M[R [i]]_(m, n)): 'M[R [i]]_(m, n) :=
+Definition conjugate m n (mx: 'M[R [i]]_(m, n)) :=
   map_mx conjc mx.
 
-Definition conjugate_transpose m n (mx: 'M[R [i]]_(m, n)) :=
-  (conjugate mx)^T.
-
 Definition unitarymx (n: nat) (mx: 'M[R [i]]_n) :=
-  (conjugate_transpose mx) *m mx = 1%:M.
+  (conjugate mx)^T *m mx = 1%:M.
 
 Lemma cond_add_blerp: forall (a b: R [i]),
   ((a^* + b^*) = (a + b)^*)%C.
 Proof.
-  intros a b. destruct a as [ar ai]. destruct b as [br bi]. simpc. rewrite -GRing.opprD. reflexivity.
+  intros a b. destruct a as [ar ai]. destruct b as [br bi]. simpc. rewrite -GRing.opprD //. 
 Qed.
 
 Lemma csum: forall I (F: I -> R [i]) (r: seq I) P,
   ((\sum_(i <- r | P) F i)^*%C) = \sum_(i <- r | P) (fun x => ((F x)^*)%C) i.
 Proof.
   move => I F r P. induction r.
-    rewrite !big_nil. apply conjc0.
+    rewrite !big_nil. rewrite conjc0 //.
     rewrite !big_cons. destruct P.
       rewrite -cond_add_blerp. rewrite IHr. reflexivity.
       apply IHr.
@@ -47,21 +44,6 @@ Proof.
       rewrite -cond_mul_blerp. rewrite IHr. reflexivity.
       apply IHr.
 Qed.
-
-(*Lemma conjugate_prod R n mx j:
-  (\prod_i (@conjugate R n n mx) i j)%R = conjc (\prod_i mx i j)%R.
-Proof.
-  unfold conjugate. rewrite cprod. unfold map_mx. apply eq_bigr. intros i _.
-  apply mxE.
-Qed.
-
-Lemma conjugate_gnarf: forall R n mx (s: perm.perm_of (Phant (ordinal n))),
-  \prod_i (@conjugate R n n mx) i (perm.PermDef.fun_of_perm s i) =
-  ((\prod_i mx i (perm.PermDef.fun_of_perm s i))^* )%C.
-Proof.
-  intros R n mx s. simpl. unfold conjugate. rewrite cprod. unfold map_mx.
-  apply eq_bigr. intros i _. apply mxE.
-Qed.*)
 
 Lemma conjc_opp: forall (a: R[i]), (-(a^*) = (-a)^*)%C.
 Proof.
@@ -91,6 +73,9 @@ Qed.
 
 Definition abs_sqc (x: R [i]): R := 
   let: (a +i* b)%C := x in a ^+ 2 + b ^+ 2.
+
+Lemma abs_seq_eq: forall x,
+  abs_sqc x = ((`|x| ^+ 2)%:C)%C.
 
 Lemma transpose_abs: forall (x: R[i]),
   x * (x^*)%C = ((abs_sqc x)%:C)%C.
