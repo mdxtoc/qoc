@@ -55,19 +55,59 @@ Proof.
   ].
 Qed.
 
-Lemma conjugate_det (n: nat) (mx: 'M[algC]_n):
-  (\det (conjugate mx) = ((\det mx)^*%C))%R.
+Lemma blerp: forall (R: ringType) (a b: R), -(a + b) = -a - b.
 Proof.
-  unfold determinant. rewrite csum. apply eq_big_seq. unfold mem. unfold prop_in1. intros.
-  rewrite -conj_mul. unfold conjugate. unfold map_mx. rewrite cprod. replace ((-1:algC) ^+ x)^* with ((-1:algC) ^+ x). 
-  
-Lemma unitary_det R n mx:
-  (@unitarymx R n mx) -> (\det mx)%R = 1%R.
+  intros. rewrite -opprB. rewrite opprK. rewrite addrC //.
+Qed.
+
+Lemma conjc_opp: forall (a: algC), (-(a^*) = (-a)^*)%C.
 Proof.
-  move => unitary_mx. rewrite -(det1 _ n). rewrite -unitary_mx //. rewrite det_mulmx. rewrite det_tr.
+  intros a. rewrite [a]Crect. rewrite blerp. rewrite -conjC_rect; [ | apply rpredNr; apply Creal_Re | apply Creal_Im].
+  rewrite conjCK. rewrite conjC_rect; [ | apply Creal_Re | apply Creal_Im ]. rewrite opprB. rewrite addrC //.
+Qed.
 
+Lemma conjcN1: ((-1: algC)^* )%C = (-1)%C.
+Proof.
+  rewrite -conjc_opp. rewrite conjC1 //. 
+Qed.
 
+Lemma nbn: forall (x y: algC), x = y -> -x = -y.
+Proof.
+  intros. rewrite H. reflexivity.
+Qed.
 
+Lemma conjugate_det n (mx: 'M[algC]_n):
+  (\det (conjugate mx)%C) = ((\det mx)^*%C)%R.
+Proof.
+  unfold determinant. rewrite csum. apply eq_big_seq. intros x _. rewrite -conj_mul.
+  unfold GRing.exp. destruct (perm.odd_perm x).
+    rewrite conjcN1. rewrite !GRing.mulN1r. 
+    rewrite cprod. unfold conjugate. unfold map_mx. apply nbn. apply eq_bigr. intros i _. apply mxE.
+    rewrite conjC1. rewrite !GRing.mul1r.
+    rewrite cprod. unfold conjugate. unfold map_mx. apply eq_bigr. intros i _. apply mxE.
+Qed.
 
+Definition abs_sqc (x: algC) := 
+   ('Re x) ^+ 2 + ('Im x) ^+ 2.
+
+Lemma abs_sqc_eq: forall x,
+  abs_sqc x = ((`|x| ^+ 2))%C.
+Proof.
+  intros x. unfold abs_sqc. rewrite [x]Crect. rewrite Re_rect; [ | apply Creal_Re | apply Creal_Im ].
+  rewrite Im_rect; [ | apply Creal_Re | apply Creal_Im ]. rewrite normCK. rewrite conjC_rect; [ | apply Creal_Re | apply Creal_Im ].
+  rewrite mulrDr. rewrite !mulrDl. 
+  rewrite -addrA. rewrite ['i * 'Im x * 'Re x + (_ + _)]addrA. rewrite [('i * 'Im x * 'Re x + _) + _]addrC. rewrite addrA.
+  rewrite !mulrN. rewrite ['Re x * ('i * _)]mulrC. rewrite addrN. rewrite addr0.
+  rewrite -['i * _ * _]mulrA. rewrite ['Im x * (_ * _)]mulrA. rewrite [('Im x * _)]mulrC. rewrite -[('i * 'Im x) * 'Im x]mulrA.
+  rewrite ['i * ('i * _)]mulrA. replace ('i * 'i) with (('i:algC) ^+ 2). rewrite sqrCi. rewrite mulNr. rewrite mul1r. rewrite opprK //.
+  auto.
+Qed.
+
+Lemma unitary_det n (mx: 'M[algC]_n):
+  unitarymx mx -> abs_sqc (\det mx) = 1.
+Proof.
+  move => unitary_mx. rewrite abs_sqc_eq. rewrite normCK. rewrite -conjugate_det. rewrite mulrC. rewrite -det_tr.
+  rewrite -det_mulmx. rewrite unitary_mx. rewrite det1 //.
+Qed.
 
 
