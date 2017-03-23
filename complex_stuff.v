@@ -15,26 +15,25 @@ Definition unitarymx (n: nat) (mx: 'M[algC]_n) :=
 Lemma conj_add: forall (a b: algC),
   ((a^* + b^*) = (a + b)^*)%C.
 Proof.
-  intros a b. rewrite [a]Crect [b]Crect. rewrite ['Re a + 'i * Im a + _]addrAC. rewrite addrA.
-  rewrite -[Re a + Re b + _ + _]addrA. rewrite -['i * Im b + _ * _]mulrDr. rewrite !conjC_rect;
-  [ | apply rpred0D | apply rpred0D | .. ]; repeat (apply Creal_Re || apply Creal_Im).
-  rewrite addrAC. rewrite addrA. rewrite mulrDr. rewrite -addrA. rewrite -opprB. rewrite opprK. rewrite ['i * Im b + 'i * Im a]addrC //.
+  intros a b; rewrite [a]Crect [b]Crect; rewrite ['Re a + 'i * Im a + _]addrAC; rewrite addrA;
+  rewrite -[Re a + Re b + _ + _]addrA; rewrite -['i * Im b + _ * _]mulrDr; rewrite !conjC_rect;
+  [ rewrite addrAC; rewrite addrA; rewrite mulrDr; rewrite -addrA; rewrite -opprB; rewrite opprK;
+    rewrite ['i * Im b + 'i * Im a]addrC //
+  | apply rpred0D | apply rpred0D | .. ]; repeat (apply Creal_Re || apply Creal_Im).
 Qed.
 
 Lemma conj_mul: forall (a b: algC),
   ((a^* * b^*) = (a * b)^*)%C.
 Proof.
-  intros a b. rewrite [a]Crect [b]Crect. rewrite mulC_rect.
-  rewrite !conjC_rect; [ | apply rpred0D; [ | apply rpredNr ]; apply rpred1M | apply rpred0D; apply rpred1M | ..];
+  intros a b; rewrite [a]Crect [b]Crect; rewrite mulC_rect;
+  rewrite !conjC_rect; [ rewrite mulrDl; rewrite ['Re a * (_ + _)]mulrDr; rewrite [-('i * 'Im a) * (_ - _)]mulrDr;
+  rewrite -mulrN; rewrite [(Re a) * ('i * - 'Im b)]mulrA; rewrite ['Re a * 'i]mulrC; rewrite -['i * 'Re a * - 'Im b]mulrA;
+  rewrite -mulrN; rewrite ['i * - 'Im a * ('i * - 'Im b)]mulrAC; rewrite ['i * ('i* - 'Im b)]mulrA; rewrite ['i * 'i]sqrCi;
+  rewrite mulNr; rewrite mul1r; rewrite opprK; rewrite -mulrA; rewrite -['Re a * 'Re b + 'i * _ + _]addrA;
+  rewrite ['i * _ + (_ + _)]addrA; rewrite [(_ + _) + ('Im b * _)]addrC; rewrite addrA; rewrite -mulrDr; rewrite mulrN;
+  rewrite ['Im b * _ ]mulrC; rewrite mulrN; rewrite mulNr; rewrite ['Im a * _]mulrC; rewrite -opprD; rewrite mulrN //
+  | apply rpred0D; [ | apply rpredNr ]; apply rpred1M | apply rpred0D; apply rpred1M | ..];
   repeat (apply Creal_Re || apply Creal_Im).
-  rewrite mulrDl. rewrite ['Re a * (_ + _)]mulrDr. rewrite [-('i * 'Im a) * (_ - _)]mulrDr. 
-  rewrite -mulrN. rewrite [(Re a) * ('i * - 'Im b)]mulrA. rewrite ['Re a * 'i]mulrC. rewrite -['i * 'Re a * - 'Im b]mulrA.
-  rewrite -mulrN. rewrite ['i * - 'Im a * ('i * - 'Im b)]mulrAC. rewrite ['i * ('i* - 'Im b)]mulrA.
-  replace ('i * 'i) with (('i:algC) ^+ 2). rewrite sqrCi. rewrite mulNr. rewrite mul1r. rewrite opprK. rewrite -mulrA.
-  rewrite -['Re a * 'Re b + 'i * _ + _]addrA. rewrite ['i * _ + (_ + _)]addrA. rewrite [(_ + _) + ('Im b * _)]addrC.
-  rewrite addrA. rewrite -mulrDr. rewrite mulrN. rewrite ['Im b * _ ]mulrC. 
-  rewrite mulrN. rewrite mulNr. rewrite ['Im a * _]mulrC. rewrite -opprD. rewrite mulrN //.
-  auto.
 Qed.
 
 Lemma csum: forall I (r: seq I) P (F: _ -> algC),
