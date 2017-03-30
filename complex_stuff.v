@@ -13,10 +13,16 @@ Definition conjugate m n (mx: 'M[R [i]]_(m, n)) :=
 Definition unitarymx (n: nat) (mx: 'M[R [i]]_n) :=
   (conjugate mx)^T *m mx = 1%:M.
 
-Lemma cond_add_blerp: forall (a b: R [i]),
+Lemma conj_add: forall (a b: R [i]),
   ((a^* + b^*) = (a + b)^*)%C.
 Proof.
   intros a b. destruct a as [ar ai]. destruct b as [br bi]. simpc. rewrite -GRing.opprD //. 
+Qed.
+
+Lemma conj_mul: forall (a b: R [i]),
+  ((a^* * b^*) = (a * b)^*)%C.
+Proof.
+  intros a b. destruct a as [ar ai]. destruct b as [br bi]. simpc. rewrite -GRing.opprD. reflexivity.
 Qed.
 
 Lemma csum: forall I (F: I -> R [i]) (r: seq I) P,
@@ -25,14 +31,8 @@ Proof.
   move => I F r P. induction r.
     rewrite !big_nil. rewrite conjc0 //.
     rewrite !big_cons. destruct P.
-      rewrite -cond_add_blerp. rewrite IHr. reflexivity.
+      rewrite -conj_add. rewrite IHr. reflexivity.
       apply IHr.
-Qed.
-
-Lemma cond_mul_blerp: forall (a b: R [i]),
-  ((a^* * b^*) = (a * b)^*)%C.
-Proof.
-  intros a b. destruct a as [ar ai]. destruct b as [br bi]. simpc. rewrite -GRing.opprD. reflexivity.
 Qed.
 
 Lemma cprod: forall I (F: I -> R[i]) (r: seq I) P,
@@ -41,7 +41,7 @@ Proof.
   move => I F r P. induction r.
     rewrite !big_nil. apply conjc1.
     rewrite !big_cons. destruct P.
-      rewrite -cond_mul_blerp. rewrite IHr. reflexivity.
+      rewrite -conj_mul. rewrite IHr. reflexivity.
       apply IHr.
 Qed.
 
@@ -63,7 +63,7 @@ Qed.
 Lemma conjugate_det n (mx: 'M[R [i]]_n):
   (\det (conjugate mx)%C) = ((\det mx)^*%C)%R.
 Proof.
-  unfold determinant. rewrite csum. apply eq_big_seq. intros x _. rewrite -cond_mul_blerp.
+  unfold determinant. rewrite csum. apply eq_big_seq. intros x _. rewrite -conj_mul.
   unfold GRing.exp. destruct (perm.odd_perm x).
     rewrite conjcN1. rewrite !GRing.mulN1r. 
     rewrite cprod. unfold conjugate. unfold map_mx. apply nbn. apply eq_bigr. intros i _. apply mxE.
@@ -73,9 +73,6 @@ Qed.
 
 Definition abs_sqc (x: R [i]): R := 
   let: (a +i* b)%C := x in a ^+ 2 + b ^+ 2.
-
-Lemma abs_seq_eq: forall x,
-  abs_sqc x = ((`|x| ^+ 2)%:C)%C.
 
 Lemma transpose_abs: forall (x: R[i]),
   x * (x^*)%C = ((abs_sqc x)%:C)%C.

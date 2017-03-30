@@ -5,7 +5,7 @@ Unset Printing Implicit Defensive.
 
 Local Open Scope ring_scope.
 
-Require Import complex_random_stuff.
+Require Import complex_stuff.
 
 Record qubit_mixin_of (n: nat) := QubitMixin {
   vector: 'cV[complex_random_stuff.R [i]]_(2 ^ n);
