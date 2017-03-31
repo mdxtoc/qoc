@@ -1,4 +1,4 @@
-From mathcomp Require Import all_ssreflect all_algebra all_field all_character all_fingroup.
+From mathcomp Require Import all_ssreflect all_algebra all_field all_fingroup.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
@@ -98,8 +98,7 @@ Proof.
   rewrite -addrA. rewrite ['i * 'Im x * 'Re x + (_ + _)]addrA. rewrite [('i * 'Im x * 'Re x + _) + _]addrC. rewrite addrA.
   rewrite !mulrN. rewrite ['Re x * ('i * _)]mulrC. rewrite addrN. rewrite addr0.
   rewrite -['i * _ * _]mulrA. rewrite ['Im x * (_ * _)]mulrA. rewrite [('Im x * _)]mulrC. rewrite -[('i * 'Im x) * 'Im x]mulrA.
-  rewrite ['i * ('i * _)]mulrA. replace ('i * 'i) with (('i:algC) ^+ 2). rewrite sqrCi. rewrite mulNr. rewrite mul1r. rewrite opprK //.
-  auto.
+  rewrite ['i * ('i * _)]mulrA. rewrite ['i * 'i]sqrCi. rewrite mulNr. rewrite mul1r. rewrite opprK //.
 Qed.
 
 Lemma unitary_det n (mx: 'M[algC]_n):
@@ -109,4 +108,26 @@ Proof.
   rewrite -det_mulmx. rewrite unitary_mx. rewrite det1 //.
 Qed.
 
+Lemma conjugate_mulmx: forall m n p (mx1: 'M_(m, n)) (mx2: 'M_(n, p)),
+  conjugate (mx1 *m mx2) = conjugate mx1 *m conjugate mx2.
+Proof.
+  intros m n p mx1 mx2. unfold conjugate. unfold map_mx. apply/matrixP. intros x y.
+    rewrite !mxE. rewrite csum. apply eq_bigr. intros i _. rewrite !mxE. symmetry. apply conj_mul.
+Qed.
 
+Lemma gniarf: forall n (v1 v2: 'cV[algC]_n) (mx: 'M[algC]_n),
+   unitarymx mx -> (conjugate v1)^T *m v2 = (conjugate (mx *m v1))^T *m (mx *m v2).
+Proof.
+  intros. rewrite conjugate_mulmx. rewrite trmx_mul. rewrite -mulmxA.
+  rewrite[(conjugate mx)^T *m (mx *m v2)]mulmxA. rewrite H. rewrite mul1mx. reflexivity.
+Qed.
+
+Lemma bloitbeard:
+  forall n (v: 'cV[algC]_n),
+    ((conjugate v)^T *m v) 0 0 = (\sum_(i < n) (`|v i (Ordinal (ltnSn 0))|^+2)).
+Proof.
+  intros. unfold conjugate. unfold mulmx. unfold const_mx. unfold map_mx.
+    rewrite !mxE. apply eq_bigr. intros i _. rewrite !mxE. rewrite normCK. rewrite !ord1. apply mulrC.
+Qed.
+
+    
