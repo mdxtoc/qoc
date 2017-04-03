@@ -33,6 +33,29 @@ Definition apply (n: nat) (q: qubit_mixin_of n) (g: gate_mixin_of n): qubit_mixi
   QubitMixin 
     (blerp q g).
 
+Definition seq2matrix (T: ringType) m n (l: seq (seq T)) :=
+  \matrix_(i<m,j<n) nth 1 (nth [::] l i) j.
 
+Local Notation "''M{' l } " := (seq2matrix _ _ l).
 
+Definition I_matrix: 'M[R [i]]_2 :=
+  'M{[:: [:: 1; 0];
+         [:: 0; 1]]}.
 
+(* Lemma I_unitary: unitarymx I_matrix. *)
+
+Definition X_matrix: 'M[R [i]]_2 :=
+  'M{[:: [:: 0; 1];
+         [:: 1; 0]]}.
+
+Definition Y_matrix: 'M[R [i]]_2 :=
+  ('M{[:: [:: 0; -'i];
+          [:: 'i; 0]]})%C.
+
+Definition Z_matrix: 'M[R [i]]_2 :=
+  'M{[:: [:: 1; 0];
+         [:: 0; -1]]}.
+
+Definition hadamard_matrix: 'M[R [i]]_2 :=
+  ('M{[:: [:: (1/Num.sqrt (2%:R))%:C; (1/Num.sqrt (2%:R))%:C];
+          [:: (1/Num.sqrt (2%:R))%:C; -(1/Num.sqrt (2%:R))%:C]]})%C.
