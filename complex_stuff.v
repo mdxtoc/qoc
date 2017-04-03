@@ -130,5 +130,3 @@ Proof.
   intros n v. rewrite !mxE. rewrite -rcsum. apply eq_bigr; intros i _.
   rewrite !mxE. rewrite mulrC. apply transpose_abs.
 Qed.
-     
-   
