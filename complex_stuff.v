@@ -1,4 +1,4 @@
-From mathcomp Require Import all_ssreflect all_algebra all_field all_real_closed.
+From mathcomp Require Import all_ssreflect all_algebra all_field all_fingroup.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
