@@ -1,17 +1,24 @@
-From mathcomp Require Import all_ssreflect all_field all_real_closed all_algebra.
+From mathcomp Require Import all_ssreflect all_algebra all_field all_real_closed.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Parameter R: rcfType.
-
+Import GRing.Theory.
 Local Open Scope ring_scope.
+
+Parameter R: rcfType.
 
 Definition conjugate m n (mx: 'M[R [i]]_(m, n)) :=
   map_mx conjc mx.
 
 Definition unitarymx (n: nat) (mx: 'M[R [i]]_n) :=
   (conjugate mx)^T *m mx = 1%:M.
+
+Lemma rc_add: forall (a b: R),
+  (a%:C + b%:C = (a + b)%:C)%C.
+Proof.
+  intros a b. unfold real_complex. simpc. reflexivity.
+Qed.
 
 Lemma conj_add: forall (a b: R [i]),
   ((a^* + b^*) = (a + b)^*)%C.
@@ -25,6 +32,17 @@ Proof.
   intros a b. destruct a as [ar ai]. destruct b as [br bi]. simpc. rewrite -GRing.opprD. reflexivity.
 Qed.
 
+Lemma rcsum: forall I (F: I -> R) (r: seq I) P,
+  (\sum_(i <- r | P) (F i)%:C)%C = ((\sum_(i <- r | P) F i)%:C)%C.
+Proof.
+  move => I F r P. induction r.
+    rewrite !big_nil //.
+    rewrite !big_cons; destruct P;
+    [ rewrite IHr; rewrite rc_add //
+    | apply IHr
+    ].
+Qed.
+   
 Lemma csum: forall I (F: I -> R [i]) (r: seq I) P,
   ((\sum_(i <- r | P) F i)^*%C) = \sum_(i <- r | P) (fun x => ((F x)^*)%C) i.
 Proof.
@@ -90,3 +108,27 @@ Proof.
   rewrite -det_mulmx. rewrite unitary_mx. rewrite det1. auto.
   inversion H. reflexivity.
 Qed.
+
+Lemma conjugate_mulmx: forall m n p (mx1: 'M_(m, n)) (mx2: 'M_(n, p)),
+  conjugate (mx1 *m mx2) = conjugate mx1 *m conjugate mx2.
+Proof.
+  intros m n p mx1 mx2; apply/matrixP; intros x y; rewrite !mxE; rewrite csum; apply eq_bigr;
+  intros i _; rewrite !mxE; symmetry; apply conj_mul.
+Qed.
+
+Lemma gniarf: forall n (v1 v2: 'cV[R [i]]_n) (mx: 'M[R [i]]_n),
+   unitarymx mx -> (conjugate v1)^T *m v2 = (conjugate (mx *m v1))^T *m (mx *m v2).
+Proof.
+  intros n v1 v2 mx H. rewrite conjugate_mulmx. rewrite trmx_mul. rewrite -mulmxA.
+  rewrite[(conjugate mx)^T *m (mx *m v2)]mulmxA. rewrite H. rewrite mul1mx. reflexivity.
+Qed.
+
+Lemma bloitbeard:
+  forall n (v: 'cV[R [i]]_n),
+    ((conjugate v)^T *m v) 0 0 = ((\sum_(i < n) abs_sqc (v i 0))%:C)%C.
+Proof.
+  intros n v. rewrite !mxE. rewrite -rcsum. apply eq_bigr; intros i _.
+  rewrite !mxE. rewrite mulrC. apply transpose_abs.
+Qed.
+     
+   
