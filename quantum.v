@@ -1,31 +1,35 @@
-From mathcomp Require Import all_ssreflect all_real_closed all_algebra.
+From mathcomp Require Import all_ssreflect all_algebra all_field all_real_closed.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Local Open Scope ring_scope.
+Import GRing.Theory.
 
 Require Import complex_stuff.
 
 Record qubit_mixin_of (n: nat) := QubitMixin {
-  vector: 'cV[complex_random_stuff.R [i]]_(2 ^ n);
-  vector_is_unit: is_true (\sum_(i < 2^n) (abs_sqc (vector i (Ordinal (ltnSn 0)))) == 1)
+  vector: 'cV[complex_stuff.R [i]]_(2 ^ n);
+  vector_is_unit: ((\sum_(i < 2^n) (abs_sqc (vector i 0)))%:C = 1)%C
 }.
 
 Record gate_mixin_of (n: nat): Type := GateMixin {
-  gate: 'M[complex_random_stuff.R [i]]_(2 ^ n);
+  gate: 'M[complex_stuff.R [i]]_(2 ^ n);
   gate_is_unitary: unitarymx gate
 }.
 
-Lemma blerp: forall n q g, is_true
-   ((\sum_(i < 2 ^ n)
-        abs_sqc
-          (((gate g) *m vector q) i (Ordinal (n:=1) (m:=0) (ltnSn 0))))%R ==
-    1%R).
+Lemma blerp: forall n q g,
+  ((\sum_(i < 2 ^ n) (abs_sqc (((gate g) *m vector q) i 0)))%:C = 1)%C.
 Proof.
   intros n q g; destruct q as [q Hq]; destruct g as [g Hg]; simpl.
+  rewrite -bloitbeard. rewrite -gniarf;
+  [ rewrite !mxE; rewrite -Hq; rewrite -rcsum; apply eq_bigr; intros i _;
+    rewrite mulrC; rewrite !mxE; apply transpose_abs
+  | apply Hg
+  ]. 
+Qed.
 
-Definition apply (R: rcfType) (n: nat) (q: qubit_mixin_of R n) (g: gate_mixin_of R n): qubit_mixin_of R n :=
+Definition apply (n: nat) (q: qubit_mixin_of n) (g: gate_mixin_of n): qubit_mixin_of n :=
   QubitMixin 
     (blerp q g).
 
