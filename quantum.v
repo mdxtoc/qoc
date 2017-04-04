@@ -86,9 +86,17 @@ Definition hadamard_matrix: 'M[R [i]]_2 :=
           [:: (1/Num.sqrt (2%:R))%:C; -(1/Num.sqrt (2%:R))%:C]]})%C.
 
 Definition select n (i: 'I_(2^n)) (bit: 'I_n) :=
-  (*i mod (2^(bit + 1)) >= 2^bit.*)
-  true.
+ 	(i %% (2^(bit + 1)) >= 2^bit)%N.
 
-Definition measure n (bit: 'I_n) (qubit: qubit_mixin_of n) :=
-  \col_(i < 2^n) if select i bit then ((vector qubit) i 0) / \sum_(i < 2^n | select i bit) ((vector qubit) i 0)^+2 else 0.
+Definition measure_1 n (bit: 'I_n) (qubit: qubit_mixin_of n) :=
+  \col_(i < 2^n)
+		if select i bit
+			then ((vector qubit) i 0) / sqrtc (\sum_(i < 2^n | select i bit) ((vector qubit) i 0)^+2)
+			else 0.
+
+Lemma measure_1_ok: forall n b q, \sum_(i < 2 ^ n) `|(measure_1 b q) i 0| ^+ 2 = 1.
+Proof.
+	move => n b q. unfold measure_1. destruct q as [q Hq].
+
+Definition measure: QubitMixin measure_1.
 
