@@ -17,7 +17,7 @@ Definition unitarymx (n: nat) (mx: 'M[R [i]]_n) :=
 Lemma conj_add: forall (a b: R [i]),
   ((a^* + b^*) = (a + b)^*)%C.
 Proof.
-  intros a b; destruct a as [ar ai]; destruct b as [br bi]; simpc; rewrite -GRing.opprD //.
+  intros a b; destruct a as [ar ai]; destruct b as [br bi]; simpc; rewrite -GRing.opprD //. 
 Qed.
 
 Lemma conj_mul: forall (a b: R [i]),
@@ -112,4 +112,41 @@ Lemma bloitbeard:
 Proof.
   intros n v. rewrite !mxE. apply eq_bigr; intros i _.
   rewrite !mxE. rewrite mulrC. symmetry; apply sqr_normc.
+Qed.
+
+Lemma conj_inv: forall (y: R [i]),
+  (y^* ^- 1)%C = ((y ^- 1)^*)%C.
+Proof.
+  intros y. destruct y as [yr yi]. unfold GRing.inv. simpl. rewrite exprNn. rewrite sqrrN. rewrite expr1n. rewrite mul1r. rewrite mulNr //.
+Qed.
+
+Lemma conj_div: forall (x y: R[i]),
+  (x^* / y^* = (x / y)^*)%C.
+Proof.
+  intros x y. destruct x as [a b]; destruct y as [c d]. simpl. 
+  unfold GRing.inv at 1. simpc. rewrite sqrrN //.
+Qed.
+
+Lemma conj_sqrtc: forall (x: R [i]),
+  0 <= x -> sqrtc x = ((sqrtc x)^*)%C.
+Proof.
+  intros x Hx; rewrite !sqrtc_sqrtr; [ rewrite conjc_real; reflexivity | apply Hx ].
+Qed.
+
+Lemma conjc_sqr: forall (x: R[i]),
+  (x * x^*)%C = ((Re x) ^+ 2 + (Im x) ^+ 2)%:C%C.
+Proof.
+  intros [xr xi]. simpc. simpl. rewrite [xi * xr]mulrC. rewrite addNr. reflexivity.
+Qed.
+
+Lemma sqrtc_norm: forall (x: R[i]),
+  0 <= x -> `|sqrtc x| ^+ 2 = x.
+Proof.
+  intros x Hx; rewrite sqr_normc; rewrite -conj_sqrtc;
+  [ replace (sqrtc x * sqrtc x) with (sqrtc x ^+ 2);
+    [ apply sqr_sqrtc
+    | auto
+    ]
+  | apply Hx
+  ].
 Qed.
