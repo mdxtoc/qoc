@@ -150,3 +150,19 @@ Proof.
   | apply Hx
   ].
 Qed.
+
+Lemma sqrtc_sqr_norm: forall (x: R[i]),
+  sqrtc (`|x| ^+ 2) = `|x|.
+Proof.
+  intros [xr xi]. simpl. rewrite !mulr0. rewrite !oppr0. rewrite !addr0. rewrite !add0r. rewrite !mul0r.
+  rewrite !expr0n. rewrite !addr0. rewrite !eq_refl. rewrite !mul1r. rewrite Num.Theory.sqrtr_sqr.
+(*  replace (ComplexField.normc _ * ComplexField.normc _) with (ComplexField.normc _ ^+ 2); [ | auto ].*)
+  rewrite Num.Theory.ger0_norm.
+(*  replace (ComplexField.normc x ^+ 2 + _) with (ComplexField.normc x ^+ 2 *+ 2);  [ | auto ].*)
+  rewrite addrN.
+  rewrite -mulr_natr. rewrite mul1r. rewrite mul0r. rewrite Num.Theory.sqrtr0.
+  replace ((_ * _) + (_ * _)) with ((Num.sqrt (xr ^+ 2 + xi ^+ 2) ^+ 2) *+ 2); [ | auto ].
+  rewrite Num.Theory.sqr_sqrtr. rewrite -mulr_natr. rewrite -mulrA. rewrite divrr. rewrite mulr1.
+  reflexivity. apply Num.Theory.unitf_gt0. auto. apply Num.Theory.addr_ge0; apply Num.Theory.sqr_ge0.
+  apply Num.Theory.mulr_ge0; apply Num.Theory.sqrtr_ge0.
+Qed.
