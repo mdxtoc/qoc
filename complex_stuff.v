@@ -1,4 +1,4 @@
-From mathcomp Require Import all_ssreflect all_algebra all_field all_fingroup.
+From mathcomp Require Import all_ssreflect all_algebra all_field all_real_closed.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
@@ -23,13 +23,13 @@ Qed.
 Lemma conj_add: forall (a b: R [i]),
   ((a^* + b^*) = (a + b)^*)%C.
 Proof.
-  intros a b. destruct a as [ar ai]. destruct b as [br bi]. simpc. rewrite -GRing.opprD //. 
+  intros a b; destruct a as [ar ai]; destruct b as [br bi]; simpc; rewrite -GRing.opprD //. 
 Qed.
 
 Lemma conj_mul: forall (a b: R [i]),
   ((a^* * b^*) = (a * b)^*)%C.
 Proof.
-  intros a b. destruct a as [ar ai]. destruct b as [br bi]. simpc. rewrite -GRing.opprD. reflexivity.
+  intros a b; destruct a as [ar ai]; destruct b as [br bi]; simpc; rewrite -GRing.opprD; reflexivity.
 Qed.
 
 Lemma rcsum: forall I (F: I -> R) (r: seq I) P,
@@ -84,30 +84,30 @@ Proof.
   unfold determinant. rewrite csum. apply eq_big_seq. intros x _. rewrite -conj_mul.
   unfold GRing.exp. destruct (perm.odd_perm x).
     rewrite conjcN1. rewrite !GRing.mulN1r. 
-    rewrite cprod. unfold conjugate. unfold map_mx. apply nbn. apply eq_bigr. intros i _. apply mxE.
+    rewrite cprod. apply nbn. apply eq_bigr. intros i _. apply mxE.
     rewrite conjc1. rewrite !GRing.mul1r.
     rewrite cprod. unfold conjugate. unfold map_mx. apply eq_bigr. intros i _. apply mxE.
 Qed.
 
-Definition abs_sqc (x: R [i]): R := 
+(*Definition abs_sqc (x: R [i]): R := 
   let: (a +i* b)%C := x in a ^+ 2 + b ^+ 2.
 
 Lemma transpose_abs: forall (x: R[i]),
-  x * (x^*)%C = ((abs_sqc x)%:C)%C.
+  x * (x^* )%C = ((abs_sqc x)%:C)%C.
 Proof.
   destruct x as [a b]. unfold abs_sqc. simpc. rewrite (GRing.mulrC b a). rewrite GRing.addNr. 
   reflexivity.
-Qed.
+Qed.*)
 
-Lemma unitary_det n (mx: 'M[R [i]]_n):
-  unitarymx mx -> abs_sqc (\det mx) = 1.
+(*Lemma unitary_det n (mx: 'M[R [i]]_n):
+  unitarymx mx -> \det mx = 1.
 Proof.
-  move => unitary_mx.
-  assert (((abs_sqc (\det mx))%:C) = 1%:C)%C.
-    rewrite -transpose_abs. rewrite -conjugate_det. rewrite GRing.mulrC. rewrite -det_tr.
+  move => unitary_mx. rewrite -[1]mulr1. rewrite -{2}conjc1. rewrite -sqr_normc. rewrite -det_mulmx.
+  (*assert (((abs_sqc (\det mx))%:C) = 1%:C)%C.
+    rewrite -transpose_abs. rewrite -conjugate_det. rewrite GRing.mulrC. rewrite -det_tr.*)
   rewrite -det_mulmx. rewrite unitary_mx. rewrite det1. auto.
   inversion H. reflexivity.
-Qed.
+Qed.*)
 
 Lemma conjugate_mulmx: forall m n p (mx1: 'M_(m, n)) (mx2: 'M_(n, p)),
   conjugate (mx1 *m mx2) = conjugate mx1 *m conjugate mx2.
@@ -125,8 +125,61 @@ Qed.
 
 Lemma bloitbeard:
   forall n (v: 'cV[R [i]]_n),
-    ((conjugate v)^T *m v) 0 0 = ((\sum_(i < n) abs_sqc (v i 0))%:C)%C.
+    ((conjugate v)^T *m v) 0 0 = \sum_(i < n) `|v i 0|^+2.
 Proof.
-  intros n v. rewrite !mxE. rewrite -rcsum. apply eq_bigr; intros i _.
-  rewrite !mxE. rewrite mulrC. apply transpose_abs.
+  intros n v. rewrite !mxE. apply eq_bigr; intros i _.
+  rewrite !mxE. rewrite mulrC. symmetry; apply sqr_normc.
+Qed.
+
+Lemma conj_inv: forall (y: R [i]),
+  (y^* ^- 1)%C = ((y ^- 1)^*)%C.
+Proof.
+  intros y. destruct y as [yr yi]. unfold GRing.inv. simpl. rewrite exprNn. rewrite sqrrN. rewrite expr1n. rewrite mul1r. rewrite mulNr //.
+Qed.
+
+Lemma conj_div: forall (x y: R[i]),
+  (x^* / y^* = (x / y)^*)%C.
+Proof.
+  intros x y. destruct x as [a b]; destruct y as [c d]. simpl. 
+  unfold GRing.inv at 1. simpc. rewrite sqrrN //.
+Qed.
+
+Lemma conj_sqrtc: forall (x: R [i]),
+  0 <= x -> sqrtc x = ((sqrtc x)^*)%C.
+Proof.
+  intros x Hx; rewrite !sqrtc_sqrtr; [ rewrite conjc_real; reflexivity | apply Hx ].
+Qed.
+
+Lemma conjc_sqr: forall (x: R[i]),
+  (x * x^*)%C = ((Re x) ^+ 2 + (Im x) ^+ 2)%:C%C.
+Proof.
+  intros [xr xi]. simpc. simpl. rewrite [xi * xr]mulrC. rewrite addNr. reflexivity.
+Qed.
+
+Lemma sqrtc_norm: forall (x: R[i]),
+  0 <= x -> `|sqrtc x| ^+ 2 = x.
+Proof.
+  intros x Hx; rewrite sqr_normc; rewrite -conj_sqrtc;
+  [ replace (sqrtc x * sqrtc x) with (sqrtc x ^+ 2);
+    [ apply sqr_sqrtc
+    | auto
+    ]
+  | apply Hx
+  ].
+Qed.
+
+Lemma sqrtc_sqr_norm: forall (x: R[i]),
+  sqrtc (`|x| ^+ 2) = `|x|.
+Proof.
+  intros [xr xi]. simpl. rewrite !mulr0. rewrite !oppr0. rewrite !addr0. rewrite !add0r. rewrite !mul0r.
+  rewrite !expr0n. rewrite !addr0. rewrite !eq_refl. rewrite !mul1r. rewrite Num.Theory.sqrtr_sqr.
+(*  replace (ComplexField.normc _ * ComplexField.normc _) with (ComplexField.normc _ ^+ 2); [ | auto ].*)
+  rewrite Num.Theory.ger0_norm.
+(*  replace (ComplexField.normc x ^+ 2 + _) with (ComplexField.normc x ^+ 2 *+ 2);  [ | auto ].*)
+  rewrite addrN.
+  rewrite -mulr_natr. rewrite mul1r. rewrite mul0r. rewrite Num.Theory.sqrtr0.
+  replace ((_ * _) + (_ * _)) with ((Num.sqrt (xr ^+ 2 + xi ^+ 2) ^+ 2) *+ 2); [ | auto ].
+  rewrite Num.Theory.sqr_sqrtr. rewrite -mulr_natr. rewrite -mulrA. rewrite divrr. rewrite mulr1.
+  reflexivity. apply Num.Theory.unitf_gt0. auto. apply Num.Theory.addr_ge0; apply Num.Theory.sqr_ge0.
+  apply Num.Theory.mulr_ge0; apply Num.Theory.sqrtr_ge0.
 Qed.
