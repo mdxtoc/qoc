@@ -4,7 +4,7 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Local Open Scope ring_scope.
-Import GRing.Theory.
+Import Num.Theory GRing.Theory.
 
 Require Import complex_stuff.
 
@@ -91,29 +91,59 @@ Definition select n (i: 'I_(2^n)) (bit: 'I_n) :=
 Definition measure_1 n (bit: 'I_n) (qubit: qubit_mixin_of n) :=
   \col_(i < 2^n)
       if select i bit
-      then ((vector qubit) i 0) / \sum_(i < 2^n | select i bit) ((vector qubit) i 0)^+2
+      then `|(vector qubit) i 0 / sqrtc (\sum_(i < 2^n | select i bit) `|(vector qubit) i 0|^+2)|^+2
       else 0.
 
-Lemma measure_aux: forall (r: seq R[i]), 
-  (\sum_(i <- r) `|i|^+2) \is a GRing.unit ->
-  \sum_(i <- r) (`|i / sqrtc (\sum_(i <- r) `|i|^+2)|^+2) = 1.
+Lemma measure_aux: forall I (r: seq I) P (F: I -> R[i]), 
+  (\sum_(i <- r | P i) `|F i|^+2) \is a GRing.unit ->
+  \sum_(i <- r | P i) (`|F i / sqrtc (\sum_(i <- r | P i) `|F i|^+2)|^+2) = 1.
 Proof.
-  intros r. destruct r; 
+  intros I r P F; destruct r;
   [ rewrite !big_nil; intros H; absurd (((0:R)%:C)%C \is a GRing.unit);
     [ rewrite unitr0 //
     | apply H
     ] 
-  | rewrite !big_cons
+  | rewrite !big_cons; destruct (P i); intros H;
+    [ rewrite normf_div; rewrite expr_div_n; replace (\sum_(j <- r | P j) `|F j / sqrtc _| ^+ 2) with
+      (\sum_(j <- r | P j) `|F j| ^+ 2 / `|sqrtc (`|F i| ^+ 2 + \sum_(j0 <- r | P j0) `|F j0| ^+ 2)| ^+ 2);
+      [ rewrite -mulr_suml; rewrite -mulrDl; rewrite sqrtc_norm;
+        [ rewrite divrr; [ reflexivity | apply H ]
+        | apply addr_ge0; [ apply exprn_ge0; apply normr_ge0 | apply sumr_ge0; intros x _; apply exprn_ge0; apply normr_ge0 ]
+        ]
+      | apply eq_bigr; intros x _; rewrite Num.Theory.normf_div; rewrite expr_div_n //
+      ]
+    | replace (\sum_(j <- r | P j) `|F j / sqrtc _| ^+ 2) with
+      (\sum_(j <- r | P j) `|F j|^+2 / `|sqrtc (\sum_(j0 <- r | P j0) `|F j0|^+2)|^+2);
+      [ rewrite -mulr_suml; rewrite sqrtc_norm;
+        [ rewrite divrr; [ reflexivity | apply H ]
+        | apply sumr_ge0; intros x _; apply exprn_ge0; apply normr_ge0
+        ]
+      | apply eq_bigr; intros x _; rewrite normf_div; rewrite expr_div_n //
+      ]
+    ]
   ].
-  intros H. rewrite Num.Theory.normf_div. rewrite expr_div_n.
-  replace (\sum_(j <- r) `|j / sqrtc _| ^+ 2) with (\sum_(j <- r) `|j| ^+ 2 / `|sqrtc (`|c| ^+ 2 + \sum_(j0 <- r) `|j0| ^+ 2)| ^+ 2).
-  2: apply eq_bigr; intros i _; rewrite Num.Theory.normf_div; rewrite expr_div_n //.
-  rewrite -mulr_suml. rewrite -mulrDl. rewrite sqrtc_norm. rewrite divrr. reflexivity.
-  apply H.
-  apply Num.Theory.addr_ge0. apply Num.Theory.exprn_ge0. apply Num.Theory.normr_ge0. apply Num.Theory.sumr_ge0.
-  intros i _; apply Num.Theory.exprn_ge0. apply Num.Theory.normr_ge0.
 Qed.
-    
-Lemma measure_unitary: forall n b q, \sum_(i < 2^n) `|(measure_1 b q) i 0|^+2 = 1
+
+Lemma sumr_cond_if: forall (T: ringType) I (r: seq I) P (F: I -> T),
+  \sum_(i <- r | P i) F i = \sum_(i <- r) (fun x => if P x then F x else (0:T)) i.
 Proof.
-  move=> n b q. 
+  intros T I r P F; induction r;
+  [ rewrite !big_nil //
+  | rewrite !big_cons; destruct (P a);
+    [ rewrite IHr //
+    | rewrite add0r; apply IHr
+    ]
+  ].
+Qed.
+
+Lemma measure_unitary: forall n b q,
+  \sum_(i < 2^n | select i b) `|(vector q) i 0| ^+ 2 \is a GRing.unit -> 
+  \sum_(i < 2^n) (measure_1 b q) i 0 = 1.
+Proof.
+  move=> n b q H. unfold measure_1.
+  replace (\sum_(i < 2 ^ n) (\col_i0 _) i 0) with
+    (\sum_(i < 2^n) (if select i b then `|vector q i 0 / sqrtc (\sum_(i1 < 2 ^ n | select i1 b) `|(vector q) i1 0| ^+2)| ^+ 2 else 0)).
+  2: apply eq_bigr; intros i _; rewrite mxE //.
+  rewrite -!sumr_cond_if. apply measure_aux. apply H.
+Qed.
+
