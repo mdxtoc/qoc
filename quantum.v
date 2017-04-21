@@ -94,49 +94,9 @@ Definition measure_1 n (bit: 'I_n) (qubit: qubit_mixin_of n) :=
       then ((vector qubit) i 0) / \sum_(i < 2^n | select i bit) ((vector qubit) i 0)^+2
       else 0.
 
-Lemma mulc_real: forall (x y: R),
-  ((x%:C * y %:C) = (x * y)%:C)%C.
-Proof.
-  intros. rewrite !real_complexE. simpc. auto.
-Qed.
-
-Lemma leq_Re: forall (x: R[i]), 0 <= x -> 0 <= Re x.
-Proof.
-  intros [xr xi]; unfold Num.Def.ler. simpl. destruct (xi == 0) eqn:H; rewrite H; simpl; auto.
-Qed.
-
-Lemma bloit: forall (x: R[i]), x != 0 -> `|x| != 0.
-Proof.
-  intros x H. apply contra with (x == 0). intros. apply/eqP. apply Num.Theory.normr0_eq0. apply/eqP. apply H0. apply H.
-Qed.
-
-(*Lemma znoits: forall (x: R[i]), x != 0 -> ComplexField.normc x != 0.
-Proof.
-  intros x H. apply contra with (x == 0). intros; apply/eqP; apply ComplexField.eq0_normc; apply/eqP; apply H0; apply H.
-Qed.*)
-
-Lemma measure_two: forall (a b: R[i]), a != 0 -> b != 0 ->
-  `|a / sqrtc (`|a|^+2 + `|b|^+2)| ^+ 2 + `|b / sqrtc (`|a|^+2 + `|b|^+2)| ^+ 2 = 1.
-Proof.
-  intros a b Ha Hb. rewrite !sqr_normc. rewrite -!conj_div. rewrite !mulf_div. rewrite -!sqr_normc. rewrite -mulrDl.
-  rewrite [`|sqrtc _| ^+ 2]sqr_normc. rewrite sqrtc_sqrtr; [ | apply Num.Theory.addr_ge0; rewrite sqr_normc; apply mulcJ_ge0 ]. rewrite conjc_real.
-  rewrite mulc_real. rewrite !real_complexE. 
-  replace (Num.sqrt (Re (`|a| ^+ 2 + `|b| ^+ 2)) * _) with
-   (Num.sqrt (Re (`|a| ^+ 2 + `|b| ^+ 2)) ^+ 2); [ | auto ]. rewrite Num.Theory.sqr_sqrtr; [ |
-     apply leq_Re; apply Num.Theory.addr_ge0; rewrite sqr_normc; apply mulcJ_ge0 ]. rewrite -real_complexE. rewrite RRe_real;
-     [ rewrite mulrV //
-     | apply/complex_realP; exists (Num.sqrt (Re a ^+ 2 + Im a ^+ 2) ^+ 2 + Num.sqrt (Re b ^+ 2 + Im b ^+ 2) ^+ 2);
-       rewrite !normc_def; simpc; auto
-     ].
-     apply/unitrP; exists ((`|a|^+2 + `|b|^+2)^-1); split; [ | rewrite GRing.mulrC ]; apply ComplexField.mulVc;
-     apply Num.Theory.lt0r_neq0; apply Num.Theory.addr_gt0; apply Num.Theory.exprn_gt0; rewrite Num.Theory.ltr_def; apply/andP;
-     split; try apply bloit; try apply Ha || apply Hb; rewrite normc_def; rewrite real_complexE;
-     unfold Num.Def.ler; simpl; apply/andP; split; try apply Num.Theory.sqrtr_ge0; auto.
-Qed.
-
 Lemma measure_aux: forall (r: seq R[i]), 
   (\sum_(i <- r) `|i|^+2) \is a GRing.unit ->
-  \sum_(i <- r) `|i / sqrtc (\sum_(i <- r) `|i|^+2)|^+2 = 1.
+  \sum_(i <- r) (`|i / sqrtc (\sum_(i <- r) `|i|^+2)|^+2) = 1.
 Proof.
   intros r. destruct r; 
   [ rewrite !big_nil; intros H; absurd (((0:R)%:C)%C \is a GRing.unit);
@@ -144,14 +104,16 @@ Proof.
     | apply H
     ] 
   | rewrite !big_cons
-  ]. 
-(*  intros H.
-  rewrite sqrtc_sqr_norm. rewrite Num.Theory.normrM. rewrite Num.Theory.normrV. rewrite Num.Theory.normr_id.
-  rewrite divrr. rewrite expr1n. reflexivity.
-  rewrite -(@unitrX_pos _ _ 2); [ apply H | auto ].
-  rewrite -(@unitrX_pos _ _ 2); [ apply H | auto ].
-  intros H. *)
-
-Lemma measure_unitary: forall n b q, \sum_(i < 2^n) `|(measure_1 b q) i 0|^+2 = 1.
+  ].
+  intros H. rewrite Num.Theory.normf_div. rewrite expr_div_n.
+  replace (\sum_(j <- r) `|j / sqrtc _| ^+ 2) with (\sum_(j <- r) `|j| ^+ 2 / `|sqrtc (`|c| ^+ 2 + \sum_(j0 <- r) `|j0| ^+ 2)| ^+ 2).
+  2: apply eq_bigr; intros i _; rewrite Num.Theory.normf_div; rewrite expr_div_n //.
+  rewrite -mulr_suml. rewrite -mulrDl. rewrite sqrtc_norm. rewrite divrr. reflexivity.
+  apply H.
+  apply Num.Theory.addr_ge0. apply Num.Theory.exprn_ge0. apply Num.Theory.normr_ge0. apply Num.Theory.sumr_ge0.
+  intros i _; apply Num.Theory.exprn_ge0. apply Num.Theory.normr_ge0.
+Qed.
+    
+Lemma measure_unitary: forall n b q, \sum_(i < 2^n) `|(measure_1 b q) i 0|^+2 = 1
 Proof.
   move=> n b q. 
