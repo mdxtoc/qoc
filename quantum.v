@@ -22,7 +22,7 @@ Lemma blerp: forall n q g,
   \sum_(i < 2 ^ n) `|(gate g *m vector q) i 0|^+2 = 1.
 Proof.
   intros n q g; destruct q as [q Hq]; destruct g as [g Hg]; simpl.
-  rewrite -bloitbeard. rewrite -gniarf;
+  rewrite -gniarf. rewrite -unitary_preserves_product;
   [ rewrite !mxE; rewrite -Hq; apply eq_bigr; intros i _;
     rewrite mulrC; rewrite !mxE; symmetry; apply sqr_normc
   | apply Hg
@@ -33,6 +33,7 @@ Definition apply (n: nat) (q: qubit_mixin_of n) (g: gate_mixin_of n): qubit_mixi
   QubitMixin 
     (blerp q g).
 
+(* this is more general, can go to a utils file *)
 Definition seq2matrix (T: ringType) m n (l: seq (seq T)) :=
   \matrix_(i<m,j<n) nth 1 (nth [::] l i) j.
 
@@ -124,6 +125,7 @@ Proof.
   ].
 Qed.
 
+(* this is more general, can go to a utils file *)
 Lemma sumr_cond_if: forall (T: ringType) I (r: seq I) P (F: I -> T),
   \sum_(i <- r | P i) F i = \sum_(i <- r) (fun x => if P x then F x else (0:T)) i.
 Proof.
@@ -133,6 +135,16 @@ Proof.
     [ rewrite IHr //
     | rewrite add0r; apply IHr
     ]
+  ].
+Qed.
+
+Lemma sum_mul_dist: forall (T: ringType) m n (F: 'I_m -> T) (G: 'I_n -> T), 
+  (\sum_(i < m) F i) * (\sum_(j < n) G j) =
+  \sum_(i < m) F i * \sum_(j < n) G j.
+Proof.
+  intros. induction m;
+  [ rewrite !big_ord0; apply mul0r
+  | rewrite !big_ord_recl; rewrite mulrDl; rewrite IHm //
   ].
 Qed.
 
@@ -147,3 +159,35 @@ Proof.
   rewrite -!sumr_cond_if. apply measure_aux. apply H.
 Qed.
 
+Lemma glerq: forall n m, ((2^n * 2^m = 2^(n+m))%N * ((1*1) = S 0)%N)%type.
+Proof.
+  intros n m. split.
+    symmetry; apply expnD. 
+    auto.
+Qed.
+
+Lemma znoits: forall n m q1 q2,
+  \sum_(i < 2^(n+m)) `|(castmx (glerq n m) (vector q1 *t vector q2)) i 0| ^+ 2 = 1.
+Proof.
+  intros m n q1 q2; destruct q1 as [q1 Hq1]; destruct q2 as [q2 Hq2]; simpl. 
+  transitivity (\sum_(i < 2^m*2^n) `|q1 (mxtens_unindex i).1 (mxtens_unindex (m:=1) (n:=1) 0).1| ^+ 2 * `|q2 (mxtens_unindex i).2 (mxtens_unindex (m:=1) (n:=1) 0).2| ^+ 2).
+  replace (index_enum (ordinal_finType (2^(m+n)))) with (index_enum (ordinal_finType (2^m * 2^n))).
+  rewrite mxE. rewrite normrM. rewrite exprMn //.
+  rewrite -(mulr_sum (fun x => `|q1 x (mxtens_unindex (m:=1) (n:=1) 0).1| ^+ 2) (fun x => `|q2 x (mxtens_unindex (m:=1) (n:=1) 0).2| ^+ 2)).
+  rewrite sum_mul_dist. simpl.
+  (* This can probably be done in a much easier way, but you know... *)
+  replace (\sum_(j<2^n) `|q2 j _|^+2) with (1:R[i]).
+  rewrite (eq_bigr _ (fun P x => mulr1 _)).
+  replace (\sum_(i<2^m) `|q1 i _|^+2) with (1:R[i]). reflexivity.
+    rewrite -Hq1. apply eq_bigr. intros i _. replace (q1 i 0) with (q1 i (Ordinal (mxtens_index_proof1 (m:=1) (n:=1) 0))).
+      reflexivity. transitivity (q1 i (Ordinal (ltn0Sn 0))). replace (Ordinal (ltn0Sn 0)) with (Ordinal (mxtens_index_proof1 (m:=1) (n:=1) 0)).
+      reflexivity. apply/val_eqP. simpl. auto.
+      reflexivity.
+    rewrite -Hq2. apply eq_bigr. intros i _. replace (q2 i 0) with (q2 i (Ordinal (mxtens_index_proof2 (m:=1) (n:=1) 0))).
+      reflexivity. transitivity (q2 i (Ordinal (ltn0Sn 0))). replace (Ordinal (ltn0Sn 0)) with (Ordinal (mxtens_index_proof2 (m:=1) (n:=1) 0)).
+      reflexivity. apply/val_eqP. simpl. auto.
+      reflexivity.
+Qed.*)
+
+Definition combine (n m: nat) (q1: qubit_mixin_of n) (q2: qubit_mixin_of m): (qubit_mixin_of (n+m)) :=
+  QubitMixin (znoits q1 q2).

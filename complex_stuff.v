@@ -116,14 +116,14 @@ Proof.
   intros i _; rewrite !mxE; symmetry; apply conj_mul.
 Qed.
 
-Lemma gniarf: forall n (v1 v2: 'cV[R [i]]_n) (mx: 'M[R [i]]_n),
+Lemma unitary_preserves_product: forall n (v1 v2: 'cV[R [i]]_n) (mx: 'M[R [i]]_n),
    unitarymx mx -> (conjugate v1)^T *m v2 = (conjugate (mx *m v1))^T *m (mx *m v2).
 Proof.
   intros n v1 v2 mx H. rewrite conjugate_mulmx. rewrite trmx_mul. rewrite -mulmxA.
   rewrite[(conjugate mx)^T *m (mx *m v2)]mulmxA. rewrite H. rewrite mul1mx. reflexivity.
 Qed.
 
-Lemma bloitbeard:
+Lemma gniarf:
   forall n (v: 'cV[R [i]]_n),
     ((conjugate v)^T *m v) 0 0 = \sum_(i < n) `|v i 0|^+2.
 Proof.
