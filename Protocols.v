@@ -1,13 +1,12 @@
 From mathcomp Require Import all_ssreflect all_algebra all_field all_real_closed. 
-(*
+
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Local Open Scope ring_scope.
-Import GRing.Theory. 
-Require Import List.
-*)
+Import Num.Theory GRing.Theory.
+
 Require Import complex_stuff.
 Require Import quantum.
 
@@ -67,18 +66,12 @@ end.
 Parameter measure_p: forall (n: nat)  (i: 'I_n) (q: qubit_mixin_of n),
            list ((R [i])* qubit_mixin_of n).
 
-Print measure_p.
-Check 3 * 5.
-Lemma blu: forall (x: R [i]), x + x = x.
-
-Function bla (x: R[i]) := (x * x)%C.
-
 Function measure_rep n (i: 'I_n) (ql : list ((R [i]) * qubit_mixin_of n)): 
              (list ((R [i]) * qubit_mixin_of n)) :=
 match ql with
   | List.nil => List.nil
   | (q :: ql')%list =>
-      let pqpq := measure_p n i (snd q) in
+      let pqpq := measure_p i (snd q) in
       let pq := (fst q) in
       match pqpq with 
          | List.nil => List.nil 
@@ -88,7 +81,7 @@ match ql with
           | ((p1%C,q1) :: l2)%list =>   
               let pn0 := (p0 * pq) in
               let pn1 := p1 in
-                 (((pn0)%C,q0):: (((pn1,q1) :: (measure_rep n i ql'))))
+                 (((pn0)%C,q0):: (((pn1,q1) :: (measure_rep i ql'))))
           end
       end
 end.
