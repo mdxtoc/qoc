@@ -89,26 +89,6 @@ Proof.
     rewrite cprod. unfold conjugate. unfold map_mx. apply eq_bigr. intros i _. apply mxE.
 Qed.
 
-(*Definition abs_sqc (x: R [i]): R := 
-  let: (a +i* b)%C := x in a ^+ 2 + b ^+ 2.
-
-Lemma transpose_abs: forall (x: R[i]),
-  x * (x^* )%C = ((abs_sqc x)%:C)%C.
-Proof.
-  destruct x as [a b]. unfold abs_sqc. simpc. rewrite (GRing.mulrC b a). rewrite GRing.addNr. 
-  reflexivity.
-Qed.*)
-
-(*Lemma unitary_det n (mx: 'M[R [i]]_n):
-  unitarymx mx -> \det mx = 1.
-Proof.
-  move => unitary_mx. rewrite -[1]mulr1. rewrite -{2}conjc1. rewrite -sqr_normc. rewrite -det_mulmx.
-  (*assert (((abs_sqc (\det mx))%:C) = 1%:C)%C.
-    rewrite -transpose_abs. rewrite -conjugate_det. rewrite GRing.mulrC. rewrite -det_tr.*)
-  rewrite -det_mulmx. rewrite unitary_mx. rewrite det1. auto.
-  inversion H. reflexivity.
-Qed.*)
-
 Lemma conjugate_mulmx: forall m n p (mx1: 'M_(m, n)) (mx2: 'M_(n, p)),
   conjugate (mx1 *m mx2) = conjugate mx1 *m conjugate mx2.
 Proof.
@@ -173,9 +153,7 @@ Lemma sqrtc_sqr_norm: forall (x: R[i]),
 Proof.
   intros [xr xi]. simpl. rewrite !mulr0. rewrite !oppr0. rewrite !addr0. rewrite !add0r. rewrite !mul0r.
   rewrite !expr0n. rewrite !addr0. rewrite !eq_refl. rewrite !mul1r. rewrite Num.Theory.sqrtr_sqr.
-(*  replace (ComplexField.normc _ * ComplexField.normc _) with (ComplexField.normc _ ^+ 2); [ | auto ].*)
   rewrite Num.Theory.ger0_norm.
-(*  replace (ComplexField.normc x ^+ 2 + _) with (ComplexField.normc x ^+ 2 *+ 2);  [ | auto ].*)
   rewrite addrN.
   rewrite -mulr_natr. rewrite mul1r. rewrite mul0r. rewrite Num.Theory.sqrtr0.
   replace ((_ * _) + (_ * _)) with ((Num.sqrt (xr ^+ 2 + xi ^+ 2) ^+ 2) *+ 2); [ | auto ].

@@ -18,9 +18,9 @@ Record gate_mixin_of (n: nat): Type := GateMixin {
   gate_is_unitary: unitarymx gate
 }.
 
-Lemma blerp: forall n q g,
-  \sum_(i < 2 ^ n) `|(gate g *m vector q) i 0|^+2 = 1.
-Proof.
+Program Definition apply (n: nat) (q: qubit_mixin_of n) (g: gate_mixin_of n): qubit_mixin_of n :=
+  (@QubitMixin _ (gate g *m vector q) _).
+Obligation 1.
   intros n q g; destruct q as [q Hq]; destruct g as [g Hg]; simpl.
   rewrite -gniarf. rewrite -unitary_preserves_product;
   [ rewrite !mxE; rewrite -Hq; apply eq_bigr; intros i _;
@@ -28,10 +28,6 @@ Proof.
   | apply Hg
   ]. 
 Qed.
-
-Definition apply (n: nat) (q: qubit_mixin_of n) (g: gate_mixin_of n): qubit_mixin_of n :=
-  QubitMixin 
-    (blerp q g).
 
 (* this is more general, can go to a utils file *)
 Definition seq2matrix (T: ringType) m n (l: seq (seq T)) :=
