@@ -85,10 +85,22 @@ Definition hadamard_matrix: 'M[R [i]]_2 :=
 Definition select n (i: 'I_(2^n)) (bit: 'I_n) :=
   (i %% (2^(bit + 1)) >= 2^bit)%N.
 
+Definition measure_0 n (bit: 'I_n) (qubit: qubit_mixin_of n) :=
+  if \sum_(i < 2^n | ~~select i bit) `|(vector qubit) i 0|^+2 == 0
+  then (vector qubit)
+  else
+    \col_(i < 2^n)
+      if ~~select i bit
+      then (vector qubit) i 0 / sqrtc (\sum_(i < 2^n | ~~select i bit) `|(vector qubit) i 0|^+2)
+      else 0.
+
 Definition measure_1 n (bit: 'I_n) (qubit: qubit_mixin_of n) :=
-  \col_(i < 2^n)
+  if \sum_(i < 2^n | select i bit) `|(vector qubit) i 0|^+2 == 0
+  then (vector qubit)
+  else
+    \col_(i < 2^n)
       if select i bit
-      then `|(vector qubit) i 0 / sqrtc (\sum_(i < 2^n | select i bit) `|(vector qubit) i 0|^+2)|^+2
+      then (vector qubit) i 0 / sqrtc (\sum_(i < 2^n | select i bit) `|(vector qubit) i 0|^+2)
       else 0.
 
 Lemma measure_aux: forall I (r: seq I) P (F: I -> R[i]), 
@@ -99,7 +111,7 @@ Proof.
   [ rewrite !big_nil; intros H; absurd (((0:R)%:C)%C \is a GRing.unit);
     [ rewrite unitr0 //
     | apply H
-    ] 
+    ]
   | rewrite !big_cons; destruct (P i); intros H;
     [ rewrite normf_div; rewrite expr_div_n; replace (\sum_(j <- r | P j) `|F j / sqrtc _| ^+ 2) with
       (\sum_(j <- r | P j) `|F j| ^+ 2 / `|sqrtc (`|F i| ^+ 2 + \sum_(j0 <- r | P j0) `|F j0| ^+ 2)| ^+ 2);
@@ -121,6 +133,7 @@ Proof.
   ].
 Qed.
 
+(* more general again *)
 Lemma sum_mul_dist: forall (T: ringType) m n (F: 'I_m -> T) (G: 'I_n -> T), 
   (\sum_(i < m) F i) * (\sum_(j < n) G j) =
   \sum_(i < m) F i * \sum_(j < n) G j.
@@ -131,15 +144,35 @@ Proof.
   ].
 Qed.
 
-Lemma measure_unitary: forall n b q,
-  \sum_(i < 2^n | select i b) `|(vector q) i 0| ^+ 2 \is a GRing.unit -> 
-  \sum_(i < 2^n) (measure_1 b q) i 0 = 1.
-Proof.
-  move=> n b q H. unfold measure_1.
-  replace (\sum_(i < 2 ^ n) (\col_i0 _) i 0) with
-    (\sum_(i < 2^n) (if select i b then `|vector q i 0 / sqrtc (\sum_(i1 < 2 ^ n | select i1 b) `|(vector q) i1 0| ^+2)| ^+ 2 else 0)).
-  2: apply eq_bigr; intros i _; rewrite mxE //.
-  rewrite -!big_mkcond. apply measure_aux. apply H.
+Program Definition measure_p (n: nat)  (i: 'I_n) (q: qubit_mixin_of n):
+           list (R[i] * qubit_mixin_of n) :=
+  [:: (\sum_(x < 2^n | ~~select x i) `|(vector q) x 0| ^+ 2, (@QubitMixin n (measure_0 i q) _));
+      (\sum_(x < 2^n | select x i) `|(vector q) x 0| ^+ 2, (@QubitMixin n (measure_1 i q) _))].
+Obligation 1.
+  intros n i q; unfold measure_0.
+  replace (\sum_(i0 < 2^n) `|(if _ then (vector q) else (\col_i1 _)) i0 0| ^+ 2) with
+  (if \sum_(i1<2^n|~~select i1 i) `|(vector q) i1 0|^+2 == 0 then \sum_(i0<2^n) `|(vector q) i0 0| ^+ 2
+   else (\sum_(i0<2^n) if ~~select i0 i then `|(vector q) i0 0 / sqrtc (\sum_(i2<2^n | ~~select i2 i) `|(vector q) i2 0|^+2)|^+2 else 0));
+  [ destruct (\sum_(i1 < 2^n | ~~select i1 i) `|(vector q) i1 0| ^+ 2 == 0) eqn:Hzero;
+    [ rewrite -(vector_is_unit q) //
+    | rewrite -!big_mkcond; apply measure_aux; rewrite unitfE Hzero //
+    ]
+  | destruct (\sum_(i1<2^n|~~select i1 i) `|(vector q) i1 0|^+2 ==0) eqn:Hzero; try reflexivity; apply eq_bigr; intros x _;
+    rewrite mxE; destruct (select x i); simpl; try reflexivity; rewrite normr0; symmetry; apply expr0n
+  ].
+Qed.
+Obligation 2.
+  intros n i q; unfold measure_1.
+  replace (\sum_(i0 < 2^n) `|(if _ then (vector q) else (\col_i1 _)) i0 0| ^+ 2) with
+  (if \sum_(i1<2^n|select i1 i) `|(vector q) i1 0|^+2 == 0 then \sum_(i0<2^n) `|(vector q) i0 0| ^+ 2
+   else (\sum_(i0<2^n) if select i0 i then `|(vector q) i0 0 / sqrtc (\sum_(i2<2^n | select i2 i) `|(vector q) i2 0|^+2)|^+2 else 0));
+  [ destruct (\sum_(i1 < 2^n | select i1 i) `|(vector q) i1 0| ^+ 2 == 0) eqn:Hzero;
+    [ rewrite -(vector_is_unit q) //
+    | rewrite -!big_mkcond; apply measure_aux; rewrite unitfE Hzero //
+    ]
+  | destruct (\sum_(i1<2^n|select i1 i) `|(vector q) i1 0|^+2 ==0) eqn:Hzero; try reflexivity; apply eq_bigr; intros x _;
+    rewrite mxE; destruct (select x i); simpl; try reflexivity; rewrite normr0; symmetry; apply expr0n
+  ].
 Qed.
 
 Program Definition combine (n m: nat) (q1: qubit_mixin_of n) (q2: qubit_mixin_of m): (qubit_mixin_of (n+m)) :=
@@ -169,4 +202,4 @@ Obligation 2.
       reflexivity. apply/val_eqP. simpl. auto.
       reflexivity.
   unfold eq_rect. destruct combine_obligation_1. reflexivity. 
-Qed.  
+Qed.
