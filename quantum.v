@@ -1,3 +1,5 @@
+(* Main quantum library *)
+
 From mathcomp Require Import all_ssreflect all_algebra all_field all_real_closed.
 Set Implicit Arguments.
 Unset Strict Implicit.
