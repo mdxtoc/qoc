@@ -179,30 +179,10 @@ Program Definition measure_p (n: nat)  (i: 'I_n) (q: qubit_mixin_of n):
   [:: (\sum_(x < 2^n | ~~select x i) `|(vector q) x 0| ^+ 2, (@QubitMixin n (measure_0 i q) _));
       (\sum_(x < 2^n | select x i) `|(vector q) x 0| ^+ 2, (@QubitMixin n (measure_1 i q) _))].
 Obligation 1.
-  intros n i q; unfold measure_0.
-  replace (\sum_(i0 < 2^n) `|(if _ then (vector q) else (\col_i1 _)) i0 0| ^+ 2) with
-  (if \sum_(i1<2^n|~~select i1 i) `|(vector q) i1 0|^+2 == 0 then \sum_(i0<2^n) `|(vector q) i0 0| ^+ 2
-   else (\sum_(i0<2^n) if ~~select i0 i then `|(vector q) i0 0 / sqrtc (\sum_(i2<2^n | ~~select i2 i) `|(vector q) i2 0|^+2)|^+2 else 0));
-  [ destruct (\sum_(i1 < 2^n | ~~select i1 i) `|(vector q) i1 0| ^+ 2 == 0) eqn:Hzero;
-    [ rewrite -(vector_is_unit q) //
-    | rewrite -!big_mkcond; apply measure_aux; rewrite unitfE Hzero //
-    ]
-  | destruct (\sum_(i1<2^n|~~select i1 i) `|(vector q) i1 0|^+2 ==0) eqn:Hzero; try reflexivity; apply eq_bigr; intros x _;
-    rewrite mxE; destruct (select x i); simpl; try reflexivity; rewrite normr0; symmetry; apply expr0n
-  ].
+  intros n i q; apply measure0_unitary.
 Qed.
 Obligation 2.
-  intros n i q; unfold measure_1.
-  replace (\sum_(i0 < 2^n) `|(if _ then (vector q) else (\col_i1 _)) i0 0| ^+ 2) with
-  (if \sum_(i1<2^n|select i1 i) `|(vector q) i1 0|^+2 == 0 then \sum_(i0<2^n) `|(vector q) i0 0| ^+ 2
-   else (\sum_(i0<2^n) if select i0 i then `|(vector q) i0 0 / sqrtc (\sum_(i2<2^n | select i2 i) `|(vector q) i2 0|^+2)|^+2 else 0));
-  [ destruct (\sum_(i1 < 2^n | select i1 i) `|(vector q) i1 0| ^+ 2 == 0) eqn:Hzero;
-    [ rewrite -(vector_is_unit q) //
-    | rewrite -!big_mkcond; apply measure_aux; rewrite unitfE Hzero //
-    ]
-  | destruct (\sum_(i1<2^n|select i1 i) `|(vector q) i1 0|^+2 ==0) eqn:Hzero; try reflexivity; apply eq_bigr; intros x _;
-    rewrite mxE; destruct (select x i); simpl; try reflexivity; rewrite normr0; symmetry; apply expr0n
-  ].
+  intros n i q; apply measure1_unitary.
 Qed.
 
 Program Definition combine (n m: nat) (q1: qubit_mixin_of n) (q2: qubit_mixin_of m): (qubit_mixin_of (n+m)) :=
