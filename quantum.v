@@ -90,20 +90,18 @@ Definition select n (i: 'I_(2^n)) (bit: 'I_n) :=
 Definition measure_0 n (bit: 'I_n) (qubit: qubit_mixin_of n) :=
   if \sum_(i < 2^n | ~~select i bit) `|(vector qubit) i 0|^+2 == 0
   then (vector qubit)
-  else
-    \col_(i < 2^n)
-      if ~~select i bit
-      then (vector qubit) i 0 / sqrtc (\sum_(i < 2^n | ~~select i bit) `|(vector qubit) i 0|^+2)
-      else 0.
+  else (\col_(i < 2^n)
+     if ~~(select i bit)
+     then (vector qubit) i 0 / sqrtc (\sum_(i < 2^n | ~~select i bit) `|(vector qubit) i 0|^+2)
+     else 0).
 
 Definition measure_1 n (bit: 'I_n) (qubit: qubit_mixin_of n) :=
   if \sum_(i < 2^n | select i bit) `|(vector qubit) i 0|^+2 == 0
   then (vector qubit)
-  else
-    \col_(i < 2^n)
+  else (\col_(i < 2^n)
       if select i bit
       then (vector qubit) i 0 / sqrtc (\sum_(i < 2^n | select i bit) `|(vector qubit) i 0|^+2)
-      else 0.
+      else 0).
 
 Lemma measure_aux: forall I (r: seq I) P (F: I -> R[i]), 
   (\sum_(i <- r | P i) `|F i|^+2) \is a GRing.unit ->
@@ -146,7 +144,7 @@ Proof.
   ].
 Qed.
 
-Program Definition measure_p (n: nat)  (i: 'I_n) (q: qubit_mixin_of n):
+(*Program Definition measure_p (n: nat)  (i: 'I_n) (q: qubit_mixin_of n):
            list (R[i] * qubit_mixin_of n) :=
   [:: (\sum_(x < 2^n | ~~select x i) `|(vector q) x 0| ^+ 2, (@QubitMixin n (measure_0 i q) _));
       (\sum_(x < 2^n | select x i) `|(vector q) x 0| ^+ 2, (@QubitMixin n (measure_1 i q) _))].
@@ -175,6 +173,46 @@ Obligation 2.
   | destruct (\sum_(i1<2^n|select i1 i) `|(vector q) i1 0|^+2 ==0) eqn:Hzero; try reflexivity; apply eq_bigr; intros x _;
     rewrite mxE; destruct (select x i); simpl; try reflexivity; rewrite normr0; symmetry; apply expr0n
   ].
+Qed.
+
+Lemma measure0_unitary: forall n b q,
+  \sum_(i < 2^n) `|(measure_0 b q) i 0|^+2 = 1.
+Proof.
+  move=> n b q. unfold measure_0.
+  destruct (\sum_(i0 < 2^n | ~~select i0 b) `|(vector q) i0 0| ^+ 2 == 0) eqn:H.
+    apply (vector_is_unit q).
+    replace (\sum_(i < 2 ^ n) `|(\col_i0 _) i 0|^+2) with
+      (\sum_(i < 2^n) (if ~~select i b then `|vector q i 0 / sqrtc (\sum_(i1 < 2 ^ n | ~~select i1 b) `|(vector q) i1 0| ^+2)| ^+ 2 else 0)).
+      rewrite -!big_mkcond. apply measure_aux. rewrite unitfE. rewrite H //.
+    apply eq_bigr; intros i _; rewrite mxE; destruct (~~select i b);
+    [ reflexivity
+    | auto; rewrite normr0; rewrite expr0n //
+    ].
+Qed.
+
+Lemma measure1_unitary: forall n b q,
+  \sum_(i < 2^n) `|(measure_1 b q) i 0|^+2 = 1.
+Proof.
+  move=> n b q. unfold measure_1.
+  destruct (\sum_(i0 < 2^n | select i0 b) `|(vector q) i0 0| ^+ 2 == 0) eqn:H.
+    apply (vector_is_unit q).
+  replace (\sum_(i < 2 ^ n) `|(\col_i0 _) i 0|^+2) with
+    (\sum_(i < 2^n) (if select i b then `|vector q i 0 / sqrtc (\sum_(i1 < 2 ^ n | select i1 b) `|(vector q) i1 0| ^+2)| ^+ 2 else 0)).
+  rewrite -!big_mkcond. apply measure_aux. rewrite unitfE. rewrite H //.
+  apply eq_bigr; intros i _; rewrite mxE; destruct (select i b);
+  [ reflexivity
+  | auto; rewrite normr0; rewrite expr0n //
+  ].
+Qed.
+
+Program Definition measure_p_2 (n: nat)  (i: 'I_n) (q: qubit_mixin_of n):
+  list ((R [i])* qubit_mixin_of n) := 
+  (1%R, (@QubitMixin _ (measure_0 i q) _))::(1, (@QubitMixin _ (measure_1 i q) _))::nil.
+Obligation 1.
+  intros. apply measure0_unitary.
+Qed.
+Obligation 2.
+  intros. apply measure1_unitary.
 Qed.
 
 Program Definition combine (n m: nat) (q1: qubit_mixin_of n) (q2: qubit_mixin_of m): (qubit_mixin_of (n+m)) :=
