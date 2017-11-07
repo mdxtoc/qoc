@@ -7,6 +7,8 @@ Unset Printing Implicit Defensive.
 Local Open Scope ring_scope.
 Import Num.Theory GRing.Theory.
 
+Require FunInd.
+
 Require Import complex_stuff.
 Require Import quantum.
 
@@ -56,16 +58,6 @@ match f with
      | fcAct E p => Act (eFill E x) p
 end.
 
-(* The following is experimental, i.e. doesn't compile since
-   the interface to quantum.v is yet in the dark..
--->  I assume a function (probably based on measure_1) 
-  >> measure (n: nat)(q: qubit): list(real * qubit)
-    measuring the nth bit in a qubit and returning the probs for 0 and 1
-    together with the respective successor qubit vector as the first two 
-    pais in the result list *)
-Parameter measure_p: forall (n: nat)  (i: 'I_n) (q: qubit_mixin_of n),
-           list ((R [i])* qubit_mixin_of n).
-
 Function measure_rep n (i: 'I_n) (ql : list ((R [i]) * qubit_mixin_of n)): 
              (list ((R [i]) * qubit_mixin_of n)) :=
 match ql with
@@ -85,10 +77,3 @@ match ql with
           end
       end
 end.
-
-
- 
-
-
-
-
