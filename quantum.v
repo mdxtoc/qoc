@@ -41,9 +41,8 @@ Definition I_matrix: 'M[R [i]]_2 :=
   'M{[:: [:: 1; 0];
          [:: 0; 1]]}.
 
-(* this can probably be done by a tactic, or computationally *)
-Lemma I_unitary: unitarymx I_matrix.
-Proof.
+Program Definition I_gate := (@GateMixin 1 I_matrix _).
+Obligation 1.
   apply/matrixP. intros x y; rewrite !mxE. rewrite !big_ord_recl. rewrite big_ord0; rewrite !mxE.
   destruct x as [m H]; destruct m as [ | m]; destruct y as [m' H']; destruct m' as [ | m'];
   [ 
@@ -66,11 +65,28 @@ Proof.
   rewrite oppr0 //.
 Qed.
 
-Definition I_gate := (@GateMixin 1 I_matrix I_unitary).
-
 Definition X_matrix: 'M[R [i]]_2 :=
   'M{[:: [:: 0; 1];
          [:: 1; 0]]}.
+
+Program Definition X_gate := (@GateMixin 1 X_matrix _).
+Obligation 1.
+  apply/matrixP; intros x y; rewrite !mxE; rewrite !big_ord_recl; rewrite big_ord0; rewrite !mxE.
+  destruct x as [m H]; destruct m as [ | m]; destruct y as [m' H']; destruct m' as [ | m'];
+  [
+  | destruct m' as [ | m' ]
+  | destruct m as [ | m ];
+    [
+    | absurd (m.+2 < 2)%N; auto
+    ]
+  | destruct m as [ | m ];
+    [ destruct m' as [ | m' ]
+    | absurd (m.+2 < 2)%N; auto
+    ]
+  ];
+  simpl; try repeat (rewrite mulr0 || rewrite mul0r || rewrite addr0 || rewrite add0r || rewrite mulr1 || rewrite mul1r);
+  rewrite oppr0 //.
+Qed.
 
 Definition Y_matrix: 'M[R [i]]_2 :=
   ('M{[:: [:: 0; -'i];
