@@ -71,34 +71,97 @@ Definition X_matrix: 'M[R [i]]_2 :=
 
 Program Definition X_gate := (@GateMixin 1 X_matrix _).
 Obligation 1.
-  apply/matrixP; intros x y; rewrite !mxE; rewrite !big_ord_recl; rewrite big_ord0; rewrite !mxE.
-  destruct x as [m H]; destruct m as [ | m]; destruct y as [m' H']; destruct m' as [ | m'];
-  [
-  | destruct m' as [ | m' ]
-  | destruct m as [ | m ];
-    [
-    | absurd (m.+2 < 2)%N; auto
-    ]
-  | destruct m as [ | m ];
-    [ destruct m' as [ | m' ]
-    | absurd (m.+2 < 2)%N; auto
-    ]
-  ];
-  simpl; try repeat (rewrite mulr0 || rewrite mul0r || rewrite addr0 || rewrite add0r || rewrite mulr1 || rewrite mul1r);
-  rewrite oppr0 //.
+  apply/matrixP; intros x y; rewrite !mxE; rewrite !big_ord_recl; rewrite big_ord0; rewrite !mxE;
+  destruct x as [[ | [ | x]] Hx]; destruct y as [[ | [ | y]] Hy]; simpl;
+  try (absurd (x.+2 < 2)%N; auto); try (absurd (y.+2 < 2)%N; auto);
+  try repeat (rewrite mul0r || rewrite mulr0 || rewrite mulr1 || rewrite addr0 || rewrite add0r || rewrite oppr0 || rewrite mulNr || rewrite mulrN);
+  auto.
 Qed.
 
 Definition Y_matrix: 'M[R [i]]_2 :=
   ('M{[:: [:: 0; -'i];
           [:: 'i; 0]]})%C.
 
+Lemma ginarf: 
+  forall R: rcfType, (Complex (GRing.zero R) (-1)) = -(Complex 0 1).
+Proof.
+  intros. unfold GRing.opp. simpl. rewrite oppr0. auto. 
+Qed.
+
+Program Definition Y_gate := (@GateMixin 1 Y_matrix _).
+Obligation 1.
+  apply/matrixP; intros x y; rewrite !mxE; rewrite !big_ord_recl; rewrite big_ord0; rewrite !mxE;
+  destruct x as [[ | [ | x]] Hx]; destruct y as [[ | [ | y]] Hy]; simpl;
+  try (absurd (x.+2 < 2)%N; auto); try (absurd (y.+2 < 2)%N; auto);
+  try repeat (rewrite mul0r || rewrite mulr0 || rewrite mulr1 || rewrite addr0 || rewrite add0r || rewrite oppr0 || rewrite mulNr || rewrite mulrN || rewrite opprK || rewrite -expr2 || rewrite sqr_i || rewrite ginarf);
+  auto.
+Qed.
+
 Definition Z_matrix: 'M[R [i]]_2 :=
   'M{[:: [:: 1; 0];
          [:: 0; -1]]}.
 
+Program Definition Z_gate := (@GateMixin 1 Z_matrix _ ).
+Obligation 1.
+  apply/matrixP; intros x y; rewrite !mxE; rewrite !big_ord_recl; rewrite big_ord0; rewrite !mxE;
+  destruct x as [[ | [ | x]] Hx]; destruct y as [[ | [ | y]] Hy]; simpl;
+  try (absurd (x.+2 < 2)%N; auto); try (absurd (y.+2 < 2)%N; auto);
+  try repeat (rewrite mul0r || rewrite mulr0 || rewrite mulr1 || rewrite addr0 || rewrite add0r || rewrite oppr0 || rewrite mulNr || rewrite mulrN);
+  auto;
+  rewrite -oppr0; unfold GRing.opp; simpl; rewrite !opprK //.
+Qed.
+
 Definition hadamard_matrix: 'M[R [i]]_2 :=
   ('M{[:: [:: (1/Num.sqrt (2%:R))%:C; (1/Num.sqrt (2%:R))%:C];
           [:: (1/Num.sqrt (2%:R))%:C; -(1/Num.sqrt (2%:R))%:C]]})%C.
+
+Lemma addr_real_complex: forall (a b: R),
+  (a%:C + b%:C)%C = ((a + b)%:C)%C.
+Proof.
+  intros; unfold GRing.add; simpl; rewrite addr0; apply real_complexE.
+Qed.
+
+Lemma subr_real_complex: forall (a b: R),
+  (a%:C - b%:C)%C = ((a - b)%:C)%C.
+Proof.
+  intros; unfold GRing.add; simpl; rewrite oppr0; rewrite addr0; apply real_complexE.
+Qed.
+
+Lemma oppr_real_complex: forall (a: R),
+  (-(a%:C)%C) = ((-a)%:C)%C.
+Proof.
+  intros; unfold GRing.opp; simpl; rewrite oppr0; apply real_complexE.
+Qed.
+
+Lemma mulr_real_complex: forall (a b: R),
+  (a%:C * b%:C)%C = ((a * b)%:C)%C.
+Proof.
+  intros; unfold GRing.mul; simpl; rewrite !mulr0; rewrite !mul0r; rewrite !oppr0; rewrite !addr0; apply real_complexE.
+Qed.
+  
+Program Definition hadamard_gate := (@GateMixin 1 hadamard_matrix _ ).
+Obligation 1.
+  apply/matrixP; intros x y; rewrite !mxE; rewrite !big_ord_recl; rewrite big_ord0; rewrite !mxE;
+  destruct x as [[ | [ | x]] Hx]; destruct y as [[ | [ | y]] Hy]; simpl;
+  try (absurd (x.+2 < 2)%N; auto); try (absurd (y.+2 < 2)%N; auto); rewrite addr0; rewrite !oppr0.
+  rewrite mulr_real_complex. rewrite mulf_div. rewrite mulr1. rewrite -expr2. rewrite sqr_sqrtr; [|apply ler0n].
+  rewrite addr_real_complex. rewrite addf_div; try (rewrite -unitfE; apply unitf_gt0; apply ltr0Sn).
+  rewrite !mul1r. rewrite !mulr_natl. rewrite [2%:R *+ 2]mulr2n.
+  rewrite divrr //; try (apply unitf_gt0; apply addr_gt0; apply ltr0Sn).
+
+  rewrite mulrN. rewrite mulr_real_complex; rewrite mulf_div; rewrite mulr1; rewrite -expr2; rewrite sqr_sqrtr; [| apply ler0n].
+  rewrite subr_real_complex. rewrite -mulNr. rewrite addf_div; try (rewrite -unitfE; apply unitf_gt0; apply ltr0Sn).
+  rewrite mulNr. rewrite !mul1r. rewrite addrN. rewrite mul0r //. 
+
+  rewrite -mulNr; rewrite !mulr_real_complex; rewrite !mulf_div. rewrite !mulr1. rewrite -expr2. rewrite sqr_sqrtr; [| apply ler0n].
+  rewrite addr_real_complex. rewrite addf_div; try (rewrite -unitfE; apply unitf_gt0; apply ltr0Sn).
+  rewrite mulNr. rewrite mul1r. rewrite addrN. rewrite mul0r //.
+
+  rewrite oppr_real_complex. rewrite -!mulNr. rewrite !mulr_real_complex. rewrite !mulf_div. rewrite mulNr. rewrite mulrN. rewrite opprK. rewrite mulr1. rewrite -expr2; rewrite sqr_sqrtr; [|apply ler0n].
+  rewrite addr_real_complex; rewrite addf_div; try (rewrite -unitfE; apply unitf_gt0; apply ltr0Sn).
+  rewrite !mul1r; rewrite !mulr_natl; rewrite [2%:R *+ 2]mulr2n.
+  rewrite divrr //; try (apply unitf_gt0; apply addr_gt0; apply ltr0Sn).
+Qed.
 
 Definition select n (i: 'I_(2^n)) (bit: 'I_n) :=
   (i %% (2^(bit + 1)) >= 2^bit)%N.
