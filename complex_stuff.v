@@ -163,3 +163,34 @@ Proof.
   reflexivity. apply Num.Theory.unitf_gt0. auto. apply Num.Theory.addr_ge0; apply Num.Theory.sqr_ge0.
   apply Num.Theory.mulr_ge0; apply Num.Theory.sqrtr_ge0.
 Qed.
+
+Lemma addr_real_complex: forall (a b: R),
+  (a%:C + b%:C)%C = ((a + b)%:C)%C.
+Proof.
+  intros; unfold GRing.add; simpl; rewrite addr0; apply real_complexE.
+Qed.
+
+Lemma oppr_real_complex: forall (a: R),
+  (-(a%:C)%C) = ((-a)%:C)%C.
+Proof.
+  intros; unfold GRing.opp; simpl; rewrite oppr0; apply real_complexE.
+Qed.
+
+Lemma subr_real_complex: forall (a b: R),
+  (a%:C - b%:C)%C = ((a - b)%:C)%C.
+Proof.
+  intros; unfold GRing.add; simpl; rewrite oppr0; rewrite addr0; apply real_complexE.
+Qed.
+
+Lemma mulr_real_complex: forall (a b: R),
+  (a%:C * b%:C)%C = ((a * b)%:C)%C.
+Proof.
+  intros; unfold GRing.mul; simpl; rewrite !mulr0; rewrite !mul0r; rewrite !oppr0; rewrite !addr0; apply real_complexE.
+Qed.
+  
+Lemma complex_minus_i: 
+  forall R: rcfType, (Complex (GRing.zero R) (-1)) = -(Complex 0 1).
+Proof.
+  intros. unfold GRing.opp. simpl. rewrite oppr0. auto. 
+Qed.
+

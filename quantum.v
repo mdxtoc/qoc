@@ -8,7 +8,7 @@ Unset Printing Implicit Defensive.
 Local Open Scope ring_scope.
 Import Num.Theory GRing.Theory.
 
-Require Import complex_stuff.
+Require Import other_stuff complex_stuff.
 
 Record qubit_mixin_of (n: nat) := QubitMixin {
   vector: 'cV[complex_stuff.R [i]]_(2 ^ n);
@@ -30,12 +30,6 @@ Obligation 1.
   | apply Hg
   ]. 
 Qed.
-
-(* this is more general, can go to a utils file *)
-Definition seq2matrix (T: ringType) m n (l: seq (seq T)) :=
-  \matrix_(i<m,j<n) nth 1 (nth [::] l i) j.
-
-Local Notation "''M{' l } " := (seq2matrix _ _ l).
 
 Definition I_matrix: 'M[R [i]]_2 :=
   'M{[:: [:: 1; 0];
@@ -82,18 +76,12 @@ Definition Y_matrix: 'M[R [i]]_2 :=
   ('M{[:: [:: 0; -'i];
           [:: 'i; 0]]})%C.
 
-Lemma ginarf: 
-  forall R: rcfType, (Complex (GRing.zero R) (-1)) = -(Complex 0 1).
-Proof.
-  intros. unfold GRing.opp. simpl. rewrite oppr0. auto. 
-Qed.
-
 Program Definition Y_gate := (@GateMixin 1 Y_matrix _).
 Obligation 1.
   apply/matrixP; intros x y; rewrite !mxE; rewrite !big_ord_recl; rewrite big_ord0; rewrite !mxE;
   destruct x as [[ | [ | x]] Hx]; destruct y as [[ | [ | y]] Hy]; simpl;
   try (absurd (x.+2 < 2)%N; auto); try (absurd (y.+2 < 2)%N; auto);
-  try repeat (rewrite mul0r || rewrite mulr0 || rewrite mulr1 || rewrite addr0 || rewrite add0r || rewrite oppr0 || rewrite mulNr || rewrite mulrN || rewrite opprK || rewrite -expr2 || rewrite sqr_i || rewrite ginarf);
+  try repeat (rewrite mul0r || rewrite mulr0 || rewrite mulr1 || rewrite addr0 || rewrite add0r || rewrite oppr0 || rewrite mulNr || rewrite mulrN || rewrite opprK || rewrite -expr2 || rewrite sqr_i || rewrite complex_minus_i);
   auto.
 Qed.
 
@@ -115,30 +103,6 @@ Definition hadamard_matrix: 'M[R [i]]_2 :=
   ('M{[:: [:: (1/Num.sqrt (2%:R))%:C; (1/Num.sqrt (2%:R))%:C];
           [:: (1/Num.sqrt (2%:R))%:C; -(1/Num.sqrt (2%:R))%:C]]})%C.
 
-Lemma addr_real_complex: forall (a b: R),
-  (a%:C + b%:C)%C = ((a + b)%:C)%C.
-Proof.
-  intros; unfold GRing.add; simpl; rewrite addr0; apply real_complexE.
-Qed.
-
-Lemma subr_real_complex: forall (a b: R),
-  (a%:C - b%:C)%C = ((a - b)%:C)%C.
-Proof.
-  intros; unfold GRing.add; simpl; rewrite oppr0; rewrite addr0; apply real_complexE.
-Qed.
-
-Lemma oppr_real_complex: forall (a: R),
-  (-(a%:C)%C) = ((-a)%:C)%C.
-Proof.
-  intros; unfold GRing.opp; simpl; rewrite oppr0; apply real_complexE.
-Qed.
-
-Lemma mulr_real_complex: forall (a b: R),
-  (a%:C * b%:C)%C = ((a * b)%:C)%C.
-Proof.
-  intros; unfold GRing.mul; simpl; rewrite !mulr0; rewrite !mul0r; rewrite !oppr0; rewrite !addr0; apply real_complexE.
-Qed.
-  
 Program Definition hadamard_gate := (@GateMixin 1 hadamard_matrix _ ).
 Obligation 1.
   apply/matrixP; intros x y; rewrite !mxE; rewrite !big_ord_recl; rewrite big_ord0; rewrite !mxE;
@@ -209,17 +173,6 @@ Proof.
       | apply eq_bigr; intros x _; rewrite normf_div; rewrite expr_div_n //
       ]
     ]
-  ].
-Qed.
-
-(* more general again *)
-Lemma sum_mul_dist: forall (T: ringType) m n (F: 'I_m -> T) (G: 'I_n -> T), 
-  (\sum_(i < m) F i) * (\sum_(j < n) G j) =
-  \sum_(i < m) F i * \sum_(j < n) G j.
-Proof.
-  intros. induction m;
-  [ rewrite !big_ord0; apply mul0r
-  | rewrite !big_ord_recl; rewrite mulrDl; rewrite IHm //
   ].
 Qed.
 
