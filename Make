@@ -2,7 +2,5 @@ complex_stuff.v
 other_stuff.v
 quantum.v
 
--I .
 -R . quantum
--I /home/jaap1/progs/math-comp/mathcomp
 -R /home/jaap1/progs/math-comp/mathcomp mathcomp
