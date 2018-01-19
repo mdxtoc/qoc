@@ -130,20 +130,26 @@ Qed.
 Definition select n (i: 'I_(2^n)) (bit: 'I_n) :=
   (i %% (2^(bit + 1)) >= 2^bit)%N.
 
+Definition prob_0 n bit qubit :=
+  \sum_(i < 2^n | ~~select i bit) `|(vector qubit) i 0| ^+ 2.
+
+Definition prob_1 n bit qubit :=
+  \sum_(i < 2^n | select i bit) `|(vector qubit) i 0| ^+ 2.
+
 Definition measure_0 n (bit: 'I_n) (qubit: qubit_mixin_of n) :=
-  if \sum_(i < 2^n | ~~select i bit) `|(vector qubit) i 0|^+2 == 0
+  if prob_0 bit qubit == 0
   then (vector qubit)
   else (\col_(i < 2^n)
      if ~~(select i bit)
-     then (vector qubit) i 0 / sqrtc (\sum_(i < 2^n | ~~select i bit) `|(vector qubit) i 0|^+2)
+     then (vector qubit) i 0 / sqrtc (prob_0 bit qubit)
      else 0).
 
 Definition measure_1 n (bit: 'I_n) (qubit: qubit_mixin_of n) :=
-  if \sum_(i < 2^n | select i bit) `|(vector qubit) i 0|^+2 == 0
+  if prob_1 bit qubit == 0
   then (vector qubit)
   else (\col_(i < 2^n)
       if select i bit
-      then (vector qubit) i 0 / sqrtc (\sum_(i < 2^n | select i bit) `|(vector qubit) i 0|^+2)
+      then (vector qubit) i 0 / sqrtc (prob_1 bit qubit)
       else 0).
 
 Lemma measure_aux: forall I (r: seq I) P (F: I -> R[i]), 
@@ -179,7 +185,7 @@ Qed.
 Lemma measure0_unitary: forall n b q,
   \sum_(i < 2^n) `|(measure_0 b q) i 0|^+2 = 1.
 Proof.
-  move=> n b q. unfold measure_0.
+  move=> n b q. unfold measure_0. unfold prob_0.
   destruct (\sum_(i0 < 2^n | ~~select i0 b) `|(vector q) i0 0| ^+ 2 == 0) eqn:H.
     apply (vector_is_unit q).
     replace (\sum_(i < 2 ^ n) `|(\col_i0 _) i 0|^+2) with
@@ -194,7 +200,7 @@ Qed.
 Lemma measure1_unitary: forall n b q,
   \sum_(i < 2^n) `|(measure_1 b q) i 0|^+2 = 1.
 Proof.
-  move=> n b q. unfold measure_1.
+  move=> n b q. unfold measure_1. unfold prob_1.
   destruct (\sum_(i0 < 2^n | select i0 b) `|(vector q) i0 0| ^+ 2 == 0) eqn:H.
     apply (vector_is_unit q).
   replace (\sum_(i < 2 ^ n) `|(\col_i0 _) i 0|^+2) with
@@ -208,8 +214,8 @@ Qed.
 
 Program Definition measure_p (n: nat)  (i: 'I_n) (q: qubit_mixin_of n):
            list (R[i] * qubit_mixin_of n) :=
-  [:: (\sum_(x < 2^n | ~~select x i) `|(vector q) x 0| ^+ 2, (@QubitMixin n (measure_0 i q) _));
-      (\sum_(x < 2^n | select x i) `|(vector q) x 0| ^+ 2, (@QubitMixin n (measure_1 i q) _))].
+  [:: (prob_0 i q, (@QubitMixin n (measure_0 i q) _));
+      (prob_1 i q, (@QubitMixin n (measure_1 i q) _))].
 Obligation 1.
   intros n i q; apply measure0_unitary.
 Qed.
@@ -268,3 +274,18 @@ Definition decomposable_aux (p: nat) (q: qubit_mixin_of p) (n m: nat) (Heq: (n +
 
 Definition decomposable (p: nat) (q: qubit_mixin_of p) :=
   exists n m Heq, (@decomposable_aux p q n m Heq).
+
+Definition entangled_aux (n: nat) (b1 b2: 'I_n) (q: qubit_mixin_of n) :=
+  prob_0 b1 q <> (prob_0 b1 (QubitMixin (measure0_unitary b2 q)) + prob_0 b1 (QubitMixin (measure1_unitary b2 q))) \/
+  prob_1 b1 q <> (prob_1 b1 (QubitMixin (measure0_unitary b2 q)) + prob_1 b1 (QubitMixin (measure1_unitary b2 q))).
+
+Definition entangled n (q: qubit_mixin_of n) :=
+  exists b1 b2, entangled_aux b1 b2 q.
+
+Theorem decomposable_entangled: forall n (q: qubit_mixin_of n), decomposable q <-> entangled q.
+Proof.
+  intros. unfold decomposable; unfold decomposable_aux; unfold combine; unfold cast;
+    unfold entangled; unfold entangled_aux; unfold measure_0; unfold measure_1; unfold prob_0; unfold prob_1.
+  simpl.
+  split.
+    intros. destruct H as [m1 [m2 [Heq [q1 [q2 H]]]]]. rewrite <- H. clear H. simpl.
