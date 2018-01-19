@@ -105,7 +105,7 @@ Proof.
   rewrite[(conjugate mx)^T *m (mx *m v2)]mulmxA. rewrite H. rewrite mul1mx. reflexivity.
 Qed.
 
-Lemma gniarf:
+Lemma conjugate_is_sum:
   forall n (v: 'cV[R [i]]_n),
     ((conjugate v)^T *m v) 0 0 = \sum_(i < n) `|v i 0|^+2.
 Proof.

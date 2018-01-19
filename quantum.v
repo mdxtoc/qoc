@@ -24,7 +24,7 @@ Program Definition apply (n: nat) (q: qubit_mixin_of n) (g: gate_mixin_of n): qu
   (@QubitMixin _ (gate g *m vector q) _).
 Obligation 1.
   intros n q g; destruct q as [q Hq]; destruct g as [g Hg]; simpl.
-  rewrite -gniarf. rewrite -unitary_preserves_product;
+  rewrite -conjugate_is_sum. rewrite -unitary_preserves_product;
   [ rewrite !mxE; rewrite -Hq; apply eq_bigr; intros i _;
     rewrite mulrC; rewrite !mxE; symmetry; apply sqr_normc
   | apply Hg
@@ -246,35 +246,6 @@ Obligation 2.
   unfold eq_rect. destruct combine_obligation_1. reflexivity. 
 Qed.
 
-(*Lemma blerp: forall n (x y: 'I_n),
-  x = y -> nat_of_ord x = nat_of_ord y.
-Proof.
-  intros. rewrite H. reflexivity.
-Qed.*)
-
-Lemma blerp: forall (R: zmodType) m n (Heq: m = n) (F1: 'I_m -> R) (F2: 'I_n -> R),
-  (forall x, F1 x = F2 (cast_ord Heq x)) ->
-  \sum_(i < m) F1 i =
-  \sum_(i < n) F2 i.
-Proof.
-  intros. generalize F1 F2 Heq H. clear F1 F2 H Heq. generalize m n. clear m n.
-  double induction m n.
-    intros; rewrite !big_ord0 //.
-    intros; inversion Heq. 
-    intros; inversion Heq.
-    intros. clear H n0 m. rewrite !big_ord_recl.   
-    inversion Heq. rewrite (H0 n _ (fun x => F2 (fintype.lift ord0 x)) H2).
-      rewrite H1.
-   replace (F2 (cast_ord Heq ord0)) with (F2 ord0).
-     reflexivity.
-     compute. rewrite (eq_irrelevance (ltn0Sn n) (cast_ord_proof (Ordinal (ltn0Sn n1)) Heq)). reflexivity.
-   intros. rewrite H1.
-     compute.
-     rewrite (eq_irrelevance (@cast_ord_proof (S n1) (S n) (@Ordinal (S n1) _ (@lift_subproof (S n1) 0 x)) Heq)
-       (@lift_subproof (S n) 0 (@Ordinal n _ (@cast_ord_proof n1 n x H2)))
-     ). reflexivity.
-Qed.
-
 Program Definition cast (m: nat) (q: qubit_mixin_of m) (n: nat) (Heq: m = n): (qubit_mixin_of n) :=
   (@QubitMixin _ (castmx _ (vector q)) _).
 Obligation 1.
@@ -283,7 +254,7 @@ Qed.
 Obligation 2.
   intros. rewrite <- (vector_is_unit q). 
   assert (2^n = 2^m)%N. rewrite Heq; reflexivity.
-  apply blerp with H.
+  apply sum_cast with H.
     intros. rewrite castmxE. rewrite cast_ord_id. replace (cast_ord (esym (cast_obligation_1 Heq).1) x) with (cast_ord H x).
       reflexivity.
       unfold cast_ord.
