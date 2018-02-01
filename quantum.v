@@ -253,15 +253,16 @@ Obligation 2.
 Qed.
 
 Program Definition cast (m: nat) (q: qubit_mixin_of m) (n: nat) (Heq: m = n): (qubit_mixin_of n) :=
-  (@QubitMixin _ (castmx _ (vector q)) _).
+  (@QubitMixin _ (vector q) _).
 Obligation 1.
-  intros; split; try rewrite Heq; reflexivity.
+  intros; rewrite Heq; reflexivity.
 Qed.
 Obligation 2.
   intros. rewrite <- (vector_is_unit q). 
   assert (2^n = 2^m)%N. rewrite Heq; reflexivity.
   apply sum_cast with H.
-    intros. rewrite castmxE. rewrite cast_ord_id. replace (cast_ord (esym (cast_obligation_1 Heq).1) x) with (cast_ord H x).
+    intros. 
+rewrite castmxE. rewrite cast_ord_id. replace (cast_ord (esym (cast_obligation_1 Heq).1) x) with (cast_ord H x).
       reflexivity.
       unfold cast_ord.
       rewrite (eq_irrelevance (cast_ord_proof x H) (cast_ord_proof x (esym (cast_obligation_1 Heq).1))).
@@ -282,10 +283,57 @@ Definition entangled_aux (n: nat) (b1 b2: 'I_n) (q: qubit_mixin_of n) :=
 Definition entangled n (q: qubit_mixin_of n) :=
   exists b1 b2, entangled_aux b1 b2 q.
 
-Theorem decomposable_entangled: forall n (q: qubit_mixin_of n), decomposable q <-> entangled q.
+Lemma znoits: (1 + 1 = 2)%N.
+Proof.
+  auto.
+Qed.
+
+Lemma dec_ind_2: forall (q: qubit_mixin_of 2),
+  decomposable_aux q znoits
+   <->
+  prob_0 0 q = prob_0 0 (QubitMixin (measure0_unitary 1 q)) + prob_0 0 (QubitMixin (measure1_unitary 1 q)) /\
+  prob_1 0 q = prob_1 0 (QubitMixin (measure0_unitary 1 q)) + prob_1 0 (QubitMixin (measure1_unitary 1 q)).
+Proof.
+  intros. unfold decomposable_aux; unfold combine; unfold cast; unfold measure_0; unfold measure_1;
+  unfold prob_0; unfold prob_1; simpl; split.
+    intros. destruct H as [q1 [q2 H]]. rewrite -H. clear H. simpl. split.
+    repeat (rewrite !big_mkcond; rewrite !big_ord_recl; simpl; rewrite !big_ord0); rewrite !add0r; rewrite !addr0.
+    assert ((castmx (cast_obligation_1 znoits)
+     (eq_rect (2 ^ 1 * 2 ^ 1)%N ((matrix R[i])^~ (1 * 1)%N) (vector q1 *t vector q2) 
+        (2 ^ (1 + 1))%N (combine_obligation_1 1 1))) ord0 0 =
+     ((vector q1) 0 0) * ((vector q2) 0 0)).
+       rewrite !castmxE. rewrite !cast_ord_id. 
+       transitivity (((vector q1) *t (vector q2)) ord0 0). 
+     unfold eq_rect. destruct (combine_obligation_1 1 1).
+    cut ((castmx (cast_obligation_1 znoits)
+     (eq_rect (2 ^ 1 * 2 ^ 1)%N ((matrix R[i])^~ (1 * 1)%N) (vector q1 *t vector q2) 
+        (2 ^ (1 + 1))%N (combine_obligation_1 1 1))) (fintype.lift ord0 (fintype.lift ord0 ord0)) 0 =
+      ((vector q1) 1 0) * ((vector q2) 0 0)).
+     intros Teq2. rewrite Teq2.
+    cut ((castmx (cast_obligation_1 znoits)
+         (eq_rect (2 ^ 1 * 2 ^ 1)%N ((matrix R[i])^~ (1 * 1)%N) (vector q1 *t vector q2) 
+            (2 ^ (1 + 1))%N (combine_obligation_1 1 1))) (fintype.lift ord0 ord0) 0 =
+       ((vector q1) 0 0) * ((vector q2) 1 0)).
+       intros Teq1. rewrite Teq1.
+    
+    rewrite !big_mkcond. rewrite !big_ord_recl. simpl. rewrite !big_ord0. rewrite !add0r.
+    rewrite !big_mkcond. rewrite !big_ord_recl. simpl. rewrite !big_ord0. rewrite !add0r.
+    rewrite !big_mkcond. rewrite !big_ord_recl. simpl. rewrite !big_ord0. rewrite !addr0.
+ destruct (`|(castmx (cast_obligation_1 znoits)
+         (eq_rect (2 ^ 1 * 2 ^ 1)%N ((matrix R[i])^~ (1 * 1)%N) (vector q1 *t vector q2) 
+            (2 ^ (1 + 1))%N (combine_obligation_1 1 1))) ord0 0| ^+ 2 +
+    `|(castmx (cast_obligation_1 znoits)
+         (eq_rect (2 ^ 1 * 2 ^ 1)%N ((matrix R[i])^~ (1 * 1)%N) (vector q1 *t vector q2) 
+            (2 ^ (1 + 1))%N (combine_obligation_1 1 1))) (fintype.lift ord0 ord0) 0| ^+ 2 == 0) eqn:X1.
+   rewrite X1.
+    rewrite !big_mkcond. rewrite !big_ord_recl. simpl. rewrite !big_ord0. rewrite !add0r.
+    rewrite !big_mkcond. rewrite !big_ord_recl. simpl. rewrite !big_ord0. rewrite !add0r. rewrite !addr0.
+    rewrite X1.
+(* we hope to prove this, of course
+Theorem decomposable_entangled: forall n (q: qubit_mixin_of n), ~decomposable q <-> entangled q.
 Proof.
   intros. unfold decomposable; unfold decomposable_aux; unfold combine; unfold cast;
     unfold entangled; unfold entangled_aux; unfold measure_0; unfold measure_1; unfold prob_0; unfold prob_1.
   simpl.
   split.
-    intros. destruct H as [m1 [m2 [Heq [q1 [q2 H]]]]]. rewrite <- H. clear H. simpl.
+    intros. destruct H. [m1 [m2 [Heq [q1 [q2 H]]]]]. rewrite <- H. clear H. simpl.*)
