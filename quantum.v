@@ -223,10 +223,26 @@ Obligation 2.
   intros n i q; apply measure1_unitary.
 Qed.
 
-Program Definition combine (n m: nat) (q1: qubit_mixin_of n) (q2: qubit_mixin_of m): (qubit_mixin_of (n+m)) :=
-  (@QubitMixin _ (vector q1 *t vector q2) _).
+Program Definition cast (m: nat) (q: qubit_mixin_of m) (n: nat) (Heq: m = n): (qubit_mixin_of n) :=
+  (@QubitMixin _ (castmx _ (vector q)) _).
 Obligation 1.
-  intros n m q1 q2; symmetry; apply expnD.
+  intros; split; try rewrite Heq; reflexivity.
+Qed.
+Obligation 2.
+  intros. rewrite <- (vector_is_unit q). 
+  assert (2^n = 2^m)%N. rewrite Heq; reflexivity.
+  apply sum_cast with H.
+    intros. rewrite castmxE. rewrite cast_ord_id. replace (cast_ord (esym (cast_obligation_1 Heq).1) x) with (cast_ord H x).
+      reflexivity.
+      unfold cast_ord.
+      rewrite (eq_irrelevance (cast_ord_proof x H) (cast_ord_proof x (esym (cast_obligation_1 Heq).1))).
+      reflexivity.
+Qed.
+
+Program Definition combine (n m: nat) (q1: qubit_mixin_of n) (q2: qubit_mixin_of m): (qubit_mixin_of (n+m)) :=
+  (@QubitMixin _ (castmx _ (vector q1 *t vector q2)) _).
+Obligation 1.
+  intros n m q1 q2; split; [ symmetry; apply expnD | auto ].
 Qed.
 Obligation 2.
   intros n m q1 q2. simpl.
@@ -249,24 +265,9 @@ Obligation 2.
       reflexivity. transitivity (q2 i (Ordinal (ltn0Sn 0))). replace (Ordinal (ltn0Sn 0)) with (Ordinal (mxtens_index_proof2 (m:=1) (n:=1) 0)).
       reflexivity. apply/val_eqP. simpl. auto.
       reflexivity.
-  unfold eq_rect. destruct combine_obligation_1. reflexivity. 
-Qed.
-
-Program Definition cast (m: nat) (q: qubit_mixin_of m) (n: nat) (Heq: m = n): (qubit_mixin_of n) :=
-  (@QubitMixin _ (vector q) _).
-Obligation 1.
-  intros; rewrite Heq; reflexivity.
-Qed.
-Obligation 2.
-  intros. rewrite <- (vector_is_unit q). 
-  assert (2^n = 2^m)%N. rewrite Heq; reflexivity.
-  apply sum_cast with H.
-    intros. 
-rewrite castmxE. rewrite cast_ord_id. replace (cast_ord (esym (cast_obligation_1 Heq).1) x) with (cast_ord H x).
-      reflexivity.
-      unfold cast_ord.
-      rewrite (eq_irrelevance (cast_ord_proof x H) (cast_ord_proof x (esym (cast_obligation_1 Heq).1))).
-      reflexivity.
+  (* destruct combine_obligation_1.
+  transitivity (\sum_(i < 2^(n+m)) `|(vector q1 *t vector q2) (cast_ord (sym_eq (combine_obligation_1 n m).1) i) 0| ^+ 2). *)
+     apply sum_cast with (combine_obligation_1 n m).1. intros. rewrite castmxE. rewrite cast_ordK. rewrite cast_ord_id. reflexivity.
 Qed.
 
 Definition decomposable_aux (p: nat) (q: qubit_mixin_of p) (n m: nat) (Heq: (n + m = p)%N) :=
