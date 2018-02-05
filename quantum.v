@@ -15,6 +15,12 @@ Record qubit_mixin_of (n: nat) := QubitMixin {
   vector_is_unit: \sum_(i < 2^n) `|vector i 0|^+2 = 1
 }.
 
+Program Definition zero_qubit: (qubit_mixin_of 0) :=
+  (@QubitMixin 0 (1%:M) _).
+Obligation 1.
+  rewrite big_ord1. rewrite mxE. rewrite normc_def. rewrite expr1n. rewrite expr0n. rewrite addr0. rewrite sqrtr1. rewrite expr1n //.
+Qed.
+
 Record gate_mixin_of (n: nat): Type := GateMixin {
   gate: 'M[complex_stuff.R [i]]_(2 ^ n);
   gate_is_unitary: unitarymx gate
@@ -270,71 +276,46 @@ Obligation 2.
      apply sum_cast with (combine_obligation_1 n m).1. intros. rewrite castmxE. rewrite cast_ordK. rewrite cast_ord_id. reflexivity.
 Qed.
 
+Program Fixpoint combine_list_aux (n: nat) (q: qubit_mixin_of n) (k: nat) (l: list (qubit_mixin_of 1)) (Hl: List.length l = k): (qubit_mixin_of (n+k)) :=
+  match l with
+  | nil => q
+  | h::t => (@combine_list_aux _ (combine q h) (k.-1) t _)
+  end.
+Obligation 1.
+  intros. rewrite <- Hl. rewrite <- Heq_l. auto.
+Qed.
+Obligation 2.
+  intros. rewrite <- Hl. rewrite <- Heq_l. auto.
+Qed.
+Obligation 3.
+  intros. rewrite <- Hl. rewrite <- Heq_l. simpl. rewrite addn1. rewrite addSn. rewrite addnS //.
+Qed.
+
+Definition combine_list (k: nat) (l: list (qubit_mixin_of 1)) (Hl: List.length l = k): (qubit_mixin_of k) :=
+  (combine_list_aux zero_qubit Hl).
+
 Definition decomposable_aux (p: nat) (q: qubit_mixin_of p) (n m: nat) (Heq: (n + m = p)%N) :=
   exists (q1: qubit_mixin_of n) (q2: qubit_mixin_of m),
   (cast (combine q1 q2) Heq) = q.
 
-Definition decomposable (p: nat) (q: qubit_mixin_of p) :=
-  exists n m Heq, (@decomposable_aux p q n m Heq).
+(* Definition decomposable (p: nat) (q: qubit_mixin_of p) :=
+  exists n m Heq, (@decomposable_aux p q n m Heq). *)
+
+Definition maximally_decomposable (n: nat) (q: qubit_mixin_of n) :=
+  exists (l: list (qubit_mixin_of 1) | length l = n), combine_list (proj2_sig l) = q.
 
 Definition entangled_aux (n: nat) (b1 b2: 'I_n) (q: qubit_mixin_of n) :=
   prob_0 b1 q <> (prob_0 b1 (QubitMixin (measure0_unitary b2 q)) + prob_0 b1 (QubitMixin (measure1_unitary b2 q))) \/
   prob_1 b1 q <> (prob_1 b1 (QubitMixin (measure0_unitary b2 q)) + prob_1 b1 (QubitMixin (measure1_unitary b2 q))).
 
-Definition entangled n (q: qubit_mixin_of n) :=
-  exists b1 b2, entangled_aux b1 b2 q.
+(* Definition entangled n (q: qubit_mixin_of n) :=
+  exists b1 b2, entangled_aux b1 b2 q. *)
 
-Lemma znoits: (1 + 1 = 2)%N.
-Proof.
-  auto.
-Qed.
+Definition disentangled (n: nat) (q: qubit_mixin_of n) :=
+  ~(exists b1 b2, entangled_aux b1 b2 q).
 
-Lemma dec_ind_2: forall (q: qubit_mixin_of 2),
-  decomposable_aux q znoits
-   <->
-  prob_0 0 q = prob_0 0 (QubitMixin (measure0_unitary 1 q)) + prob_0 0 (QubitMixin (measure1_unitary 1 q)) /\
-  prob_1 0 q = prob_1 0 (QubitMixin (measure0_unitary 1 q)) + prob_1 0 (QubitMixin (measure1_unitary 1 q)).
-Proof.
-  intros. unfold decomposable_aux; unfold combine; unfold cast; unfold measure_0; unfold measure_1;
-  unfold prob_0; unfold prob_1; simpl; split.
-    intros. destruct H as [q1 [q2 H]]. rewrite -H. clear H. simpl. split.
-    repeat (rewrite !big_mkcond; rewrite !big_ord_recl; simpl; rewrite !big_ord0); rewrite !add0r; rewrite !addr0.
-    assert ((castmx (cast_obligation_1 znoits)
-     (eq_rect (2 ^ 1 * 2 ^ 1)%N ((matrix R[i])^~ (1 * 1)%N) (vector q1 *t vector q2) 
-        (2 ^ (1 + 1))%N (combine_obligation_1 1 1))) ord0 0 =
-     ((vector q1) 0 0) * ((vector q2) 0 0)).
-       rewrite !castmxE. rewrite !cast_ord_id. 
-       transitivity (((vector q1) *t (vector q2)) ord0 0). 
-     unfold eq_rect. destruct (combine_obligation_1 1 1).
-    cut ((castmx (cast_obligation_1 znoits)
-     (eq_rect (2 ^ 1 * 2 ^ 1)%N ((matrix R[i])^~ (1 * 1)%N) (vector q1 *t vector q2) 
-        (2 ^ (1 + 1))%N (combine_obligation_1 1 1))) (fintype.lift ord0 (fintype.lift ord0 ord0)) 0 =
-      ((vector q1) 1 0) * ((vector q2) 0 0)).
-     intros Teq2. rewrite Teq2.
-    cut ((castmx (cast_obligation_1 znoits)
-         (eq_rect (2 ^ 1 * 2 ^ 1)%N ((matrix R[i])^~ (1 * 1)%N) (vector q1 *t vector q2) 
-            (2 ^ (1 + 1))%N (combine_obligation_1 1 1))) (fintype.lift ord0 ord0) 0 =
-       ((vector q1) 0 0) * ((vector q2) 1 0)).
-       intros Teq1. rewrite Teq1.
-    
-    rewrite !big_mkcond. rewrite !big_ord_recl. simpl. rewrite !big_ord0. rewrite !add0r.
-    rewrite !big_mkcond. rewrite !big_ord_recl. simpl. rewrite !big_ord0. rewrite !add0r.
-    rewrite !big_mkcond. rewrite !big_ord_recl. simpl. rewrite !big_ord0. rewrite !addr0.
- destruct (`|(castmx (cast_obligation_1 znoits)
-         (eq_rect (2 ^ 1 * 2 ^ 1)%N ((matrix R[i])^~ (1 * 1)%N) (vector q1 *t vector q2) 
-            (2 ^ (1 + 1))%N (combine_obligation_1 1 1))) ord0 0| ^+ 2 +
-    `|(castmx (cast_obligation_1 znoits)
-         (eq_rect (2 ^ 1 * 2 ^ 1)%N ((matrix R[i])^~ (1 * 1)%N) (vector q1 *t vector q2) 
-            (2 ^ (1 + 1))%N (combine_obligation_1 1 1))) (fintype.lift ord0 ord0) 0| ^+ 2 == 0) eqn:X1.
-   rewrite X1.
-    rewrite !big_mkcond. rewrite !big_ord_recl. simpl. rewrite !big_ord0. rewrite !add0r.
-    rewrite !big_mkcond. rewrite !big_ord_recl. simpl. rewrite !big_ord0. rewrite !add0r. rewrite !addr0.
-    rewrite X1.
-(* we hope to prove this, of course
-Theorem decomposable_entangled: forall n (q: qubit_mixin_of n), ~decomposable q <-> entangled q.
-Proof.
-  intros. unfold decomposable; unfold decomposable_aux; unfold combine; unfold cast;
-    unfold entangled; unfold entangled_aux; unfold measure_0; unfold measure_1; unfold prob_0; unfold prob_1.
-  simpl.
-  split.
-    intros. destruct H. [m1 [m2 [Heq [q1 [q2 H]]]]]. rewrite <- H. clear H. simpl.*)
+Definition maximally_entangled (n: nat) (q: qubit_mixin_of n):
+  forall b1 b2, entangled_aux b1 b2 q.
+
+Theorem thingie n (q: qubit_mixin_of n):
+  disentangled q <-> maximally_decomposable q.
