@@ -304,18 +304,17 @@ Definition decomposable_aux (p: nat) (q: qubit_mixin_of p) (n m: nat) (Heq: (n +
 Definition maximally_decomposable (n: nat) (q: qubit_mixin_of n) :=
   exists (l: list (qubit_mixin_of 1) | length l = n), combine_list (proj2_sig l) = q.
 
-Definition entangled_aux (n: nat) (b1 b2: 'I_n) (q: qubit_mixin_of n) :=
-  prob_0 b1 q <> (prob_0 b1 (QubitMixin (measure0_unitary b2 q)) + prob_0 b1 (QubitMixin (measure1_unitary b2 q))) \/
-  prob_1 b1 q <> (prob_1 b1 (QubitMixin (measure0_unitary b2 q)) + prob_1 b1 (QubitMixin (measure1_unitary b2 q))).
-
-(* Definition entangled n (q: qubit_mixin_of n) :=
-  exists b1 b2, entangled_aux b1 b2 q. *)
+Definition disentangled_aux (n: nat) (b1 b2: 'I_n) (q: qubit_mixin_of n) :=
+  prob_0 b1 q = (prob_0 b1 (QubitMixin (measure0_unitary b2 q)) + prob_0 b1 (QubitMixin (measure1_unitary b2 q))) \/
+  prob_1 b1 q = (prob_1 b1 (QubitMixin (measure0_unitary b2 q)) + prob_1 b1 (QubitMixin (measure1_unitary b2 q))).
 
 Definition disentangled (n: nat) (q: qubit_mixin_of n) :=
-  ~(exists b1 b2, entangled_aux b1 b2 q).
+  forall b1 b2, disentangled_aux b1 b2 q.
 
 Definition maximally_entangled (n: nat) (q: qubit_mixin_of n):
-  forall b1 b2, entangled_aux b1 b2 q.
+  ~exists b1 b2, disentangled_aux b1 b2 q.
 
 Theorem thingie n (q: qubit_mixin_of n):
   disentangled q <-> maximally_decomposable q.
+Proof.
+  unfold disentangled; unfold maximally_decomposable; unfold disentangled_aux; unfold measure_0; unfold measure_1; unfold prob_0; unfold prob_1; simpl.
