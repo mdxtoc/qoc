@@ -11,3 +11,4 @@ released version does not include the complex number module).
 
 Then, run Coq (or CoqIDE) with the following arguments:
 `-R <path>/math-comp/mathcomp mathcomp -R . quantum`
+(where `<path>` is the path to the Mathema)ical Components Library)
