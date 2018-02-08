@@ -334,19 +334,21 @@ Definition maximally_decomposable (n: nat) (q: qubit_vector_of n) :=
  * b1 influences the probability distribution of measuring b2. It is maximally entangled if all qubits in the
  * vector influence each other. It is disentangled if no qubits in the vector influence each other. *)
 Definition disentangled_aux (n: nat) (b1 b2: 'I_n) (q: qubit_vector_of n) :=
-  prob_0 b1 q = (prob_0 b1 (QubitVectorMixin (measure0_unitary b2 q)) + prob_0 b1 (QubitVectorMixin (measure1_unitary b2 q))) /\
-  prob_1 b1 q = (prob_1 b1 (QubitVectorMixin (measure0_unitary b2 q)) + prob_1 b1 (QubitVectorMixin (measure1_unitary b2 q))).
+  prob_0 b1 (QubitVectorMixin (measure0_unitary b2 q)) = prob_0 b1 (QubitVectorMixin (measure1_unitary b2 q)) /\
+  prob_1 b1 (QubitVectorMixin (measure0_unitary b2 q)) = prob_1 b1 (QubitVectorMixin (measure1_unitary b2 q)).
 
 Definition disentangled (n: nat) (q: qubit_vector_of n) :=
   forall b1 b2, disentangled_aux b1 b2 q.
-
-Definition entangled (n: nat) (q: qubit_vector_of n) :=
-  exists b1 b2, ~disentangled_aux b1 b2 q.
 
 Definition maximally_entangled (n: nat) (q: qubit_vector_of n):
   forall b1 b2, ~disentangled_aux b1 b2 q.
 
 (* Entanglement and decomposability are equivalent. *)
-Theorem thingie n (q: qubit_vector_of n):
-  disentangled q <-> maximally_decomposable q.
+Theorem decdis n (q: qubit_vector_of n):
+  maximally_decomposable q -> disentangled q.
 Proof.
+  unfold disentangled; unfold maximally_decomposable; unfold disentangled_aux; unfold measure_0; unfold measure_1;
+  unfold prob_0; unfold prob_1; simpl.
+    intros. destruct H. rewrite <- H. clear H. destruct x. unfold combine_list. simpl. split.
+      apply congr_big; try auto.
+      intros.
