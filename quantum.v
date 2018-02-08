@@ -259,6 +259,7 @@ Obligation 2.
   intros. rewrite <- (vector_is_unit q). 
   assert (2^n = 2^m)%N. rewrite Heq; reflexivity.
   apply sum_cast with H.
+    auto.
     intros. rewrite castmxE. rewrite cast_ord_id. replace (cast_ord (esym (cast_obligation_1 Heq).1) x) with (cast_ord H x).
       reflexivity.
       unfold cast_ord.
@@ -294,7 +295,7 @@ Obligation 2.
       reflexivity. transitivity (q2 i (Ordinal (ltn0Sn 0))). replace (Ordinal (ltn0Sn 0)) with (Ordinal (mxtens_index_proof2 (m:=1) (n:=1) 0)).
       reflexivity. apply/val_eqP. simpl. auto.
       reflexivity.
-    apply sum_cast with (combine_obligation_1 m n).1. intros. rewrite castmxE. rewrite cast_ordK. rewrite cast_ord_id. reflexivity.
+    apply sum_cast with (combine_obligation_1 m n).1. auto. intros. rewrite castmxE. rewrite cast_ordK. rewrite cast_ord_id. reflexivity.
 Qed.
 
 (* Combine a list of k 1-qubit vectors into one k-qubit vector. We use the 0-qubit vector as an initial value
