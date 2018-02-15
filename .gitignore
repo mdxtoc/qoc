@@ -10,3 +10,5 @@
 Make*.coq
 Make*.coq.bak
 *#
+Makefile
+Makefile.conf
