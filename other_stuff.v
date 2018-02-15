@@ -12,6 +12,19 @@ Definition seq2matrix (T: ringType) m n (l: seq (seq T)) :=
 
 Notation "''M{' l } " := (seq2matrix _ _ l).
 
+Lemma sum_add_dist: forall (T: ringType) m (F: 'I_m -> T) (G: 'I_m -> T), 
+  (\sum_(i < m) F i) + (\sum_(i < m) G i) =
+  \sum_(i < m) (F i + G i).
+Proof.
+  intros. induction m;
+  [ rewrite !big_ord0; apply add0r
+  | rewrite !big_ord_recl
+  ].
+  rewrite (addrC (F ord0)). rewrite -(addrA _ (F ord0)). rewrite (addrA (F ord0)).
+  rewrite (addrC (F ord0 + G ord0)). rewrite (addrA _ _ (F ord0 + G ord0)). rewrite addrC.
+  rewrite IHm //.
+Qed.
+
 Lemma sum_mul_dist: forall (T: ringType) m n (F: 'I_m -> T) (G: 'I_n -> T), 
   (\sum_(i < m) F i) * (\sum_(j < n) G j) =
   \sum_(i < m) F i * \sum_(j < n) G j.
