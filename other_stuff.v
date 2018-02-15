@@ -35,7 +35,7 @@ Proof.
   ].
 Qed.
 
-Lemma sum_cast: forall (R: zmodType) m n (Heq: m = n) (P1: pred 'I_m) (P2: pred 'I_n)
+Lemma sum_cast: forall (R: ringType) m n (Heq: m = n) (P1: pred 'I_m) (P2: pred 'I_n)
   (F1: 'I_m -> R) (F2: 'I_n -> R),
   (forall x, P1 x = P2 (cast_ord Heq x)) ->
   (forall x, F1 x = F2 (cast_ord Heq x)) ->
@@ -64,4 +64,14 @@ Proof.
        (@lift_subproof (S n) 0 (@Ordinal n _ (@cast_ord_proof n1 n x H3)))
      ). reflexivity.
    rewrite -big_mkcond. reflexivity. rewrite -big_mkcond. reflexivity.
+Qed.
+
+Lemma sum_if_not: forall (R: ringType) m P (F: 'I_m -> R),
+  \sum_(i < m | ~~P i) F i + \sum_(i < m | P i) F i = \sum_(i < m) F i.
+Proof.
+  intros. rewrite (big_mkcond (fun i => ~~P i)). rewrite (big_mkcond (fun i => P i)).
+  rewrite sum_add_dist. induction m;
+  [ rewrite !big_ord0 //
+  | rewrite !big_ord_recl; destruct (P ord0); [ rewrite add0r | rewrite addr0 ]; rewrite IHm //
+  ].
 Qed.
