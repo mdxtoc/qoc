@@ -25,7 +25,6 @@ Inductive Expr: Type :=
    | op : Gate -> Expr
    | chan: nat -> Expr.
 
-
 Inductive Proc: Type := 
    | Null : Proc
    | Par: Proc -> Proc -> Proc
