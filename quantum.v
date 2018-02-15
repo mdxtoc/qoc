@@ -245,7 +245,7 @@ Qed.
  * probability that bit b of qubit vector q is 0 or 1 respectively; the second element of each pair is the
  * new qubit vector that results in each case. *)
 Definition measure_p (n: nat)  (b: 'I_n) (q: qubit_vector_of n):
-           list (R[i] * qubit_vector_of n) :=
+           seq (R[i] * qubit_vector_of n) :=
   [:: (prob_0 b q, (QubitVectorMixin (measure0_unitary b q)));
       (prob_1 b q, (QubitVectorMixin (measure1_unitary b q)))].
 
@@ -298,26 +298,38 @@ Obligation 2.
     apply sum_cast with (combine_obligation_1 m n).1. auto. intros. rewrite castmxE. rewrite cast_ordK. rewrite cast_ord_id. reflexivity.
 Qed.
 
-(* Combine a list of k 1-qubit vectors into one k-qubit vector. We use the 0-qubit vector as an initial value
+Check thead.
+(* C1ombine a list of k 1-qubit vectors into one k-qubit vector. We use the 0-qubit vector as an initial value
  * here, as it is the neutral element of the tensor product. *)
-Program Fixpoint combine_list_aux (n: nat) (q: qubit_vector_of n) (k: nat) (l: list (qubit_vector_of 1)) (Hl: List.length l = k): (qubit_vector_of (n+k)) :=
-  match l with
-  | nil => q
-  | h::t => (@combine_list_aux _ (combine q h) (k.-1) t _)
+Program Fixpoint combine_tuple_aux (n: nat) (q: qubit_vector_of n) (k: nat) (l: k .-tuple (qubit_vector_of 1)) { struct k }: (qubit_vector_of (n+k)) :=
+  match k with
+  | 0 => q
+  | k'.+1 => (@combine_tuple_aux n.+1 (@combine 1 n (@thead k' _ l) q) k' (behead_tuple l))
   end.
 Obligation 1.
-  intros. rewrite <- Hl. rewrite <- Heq_l. auto.
+  intros. symmetry. apply addn0.
 Qed.
 Obligation 2.
-  intros. rewrite <- Hl. rewrite <- Heq_l. auto.
+  intros. symmetry. apply Heq_k.
 Qed.
 Obligation 3.
-  intros. rewrite <- Hl. rewrite <- Heq_l. simpl. rewrite addn1. rewrite addSn. rewrite addnS //.
+  intros. simpl. rewrite <- Heq_k. reflexivity.
+Qed.
+Obligation 4.
+  intros. rewrite addSn. rewrite addnS //.
 Qed.
 
-Definition combine_list (k: nat) (l: list (qubit_vector_of 1)) (Hl: List.length l = k): (qubit_vector_of k) :=
-  (combine_list_aux zero_qubit Hl).
+Definition combine_tuple (k: nat) (l: k.-tuple (qubit_vector_of 1)): (qubit_vector_of k) :=
+  (combine_tuple_aux zero_qubit l).
 
+Lemma combine_tupleE: forall k (l: k.-tuple (qubit_vector_of 1)) i,
+  vector (combine_tuple l) i 0 =
+  \prod_(n < k) (vector (tnth l n)) (if (select i n) then 1 else 0) 0.
+Proof.
+  intros. unfold combine_tuple. induction k.
+    simpl. rewrite !big_ord0. rewrite -Eqdep_dec.eq_rect_eq_dec. destruct zero_qubit; simpl.
+    rewrite big_ord1 in vector_is_unit0. rewrite ord1. 
+    destruct (eq_rect 0 (fun n: nat => qubit_vector_of n) zero_qubit (0 + 0)%N (combine_tuple_aux_obligation_1 0)).
 (* Definition of decomposability. A qubit vector is decomposable if it can be written as the combination of
  * two qubit vectors. It is maximally decomposable if it can be written as a combination of 1-qubit vectors. *)
 Definition decomposable_aux (p: nat) (q: qubit_vector_of p) (n m: nat) (Heq: (n + m = p)%N) :=
@@ -342,6 +354,17 @@ Definition disentangled (n: nat) (q: qubit_vector_of n) :=
 
 Definition maximally_entangled (n: nat) (q: qubit_vector_of n):
   forall b1 b2, ~disentangled_aux b1 b2 q.
+
+Lemma frob:
+  forall n q b, ~(\sum_(i < 2^n | ~~select i b) `|(vector q) i 0| ^+2 == 0 /\
+                  \sum_(i < 2^n | select i b) `|(vector q) i 0| ^+ 2 == 0).
+Proof.
+  intros. intro X. destruct X. 
+  absurd ((GRing.one (ComplexField.complex_numDomainType R)) == 0 + 0).
+    intro. rewrite add0r in H1. rewrite oner_eq0 in H1. inversion H1.
+  rewrite -{1}(eqP H). rewrite -{2}(eqP H0).
+  rewrite sum_if_not. apply/eqP. symmetry. apply (vector_is_unit q).
+Qed.
 
 (* Entanglement and decomposability are equivalent. *)
 Theorem decdis n (q: qubit_vector_of n):
