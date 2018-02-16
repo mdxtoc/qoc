@@ -322,14 +322,19 @@ Qed.
 Definition combine_tuple (k: nat) (l: k.-tuple (qubit_vector_of 1)): (qubit_vector_of k) :=
   (combine_tuple_aux zero_qubit l).
 
+Axiom behead_tupleE: forall T k h (l: k.-tuple T), behead_tuple ([tuple of h :: l]) = [tuple of l].
+
 Lemma combine_tupleE: forall k (l: k.-tuple (qubit_vector_of 1)) i,
   vector (combine_tuple l) i 0 =
   \prod_(n < k) (vector (tnth l n)) (if (select i n) then 1 else 0) 0.
 Proof.
   intros. unfold combine_tuple. induction k.
-    simpl. rewrite !big_ord0. rewrite -Eqdep_dec.eq_rect_eq_dec. destruct zero_qubit; simpl.
-    rewrite big_ord1 in vector_is_unit0. rewrite ord1. 
-    destruct (eq_rect 0 (fun n: nat => qubit_vector_of n) zero_qubit (0 + 0)%N (combine_tuple_aux_obligation_1 0)).
+    simpl. rewrite !big_ord0. rewrite -Eqdep_dec.eq_rect_eq_dec. unfold zero_qubit. rewrite mxE. rewrite ord1 //. 
+    intros; apply PeanoNat.Nat.eq_dec. 
+    simpl. rewrite -!Eqdep_dec.eq_rect_eq_dec. rewrite !big_ord_recl.
+    generalize l. clear l. case/tupleP. intros h l.
+    rewrite !theadE. rewrite tnth0. rewrite behead_tupleE.
+
 (* Definition of decomposability. A qubit vector is decomposable if it can be written as the combination of
  * two qubit vectors. It is maximally decomposable if it can be written as a combination of 1-qubit vectors. *)
 Definition decomposable_aux (p: nat) (q: qubit_vector_of p) (n m: nat) (Heq: (n + m = p)%N) :=
@@ -375,3 +380,14 @@ Proof.
     intros. destruct H. rewrite <- H. clear H. destruct x. unfold combine_list. simpl. split.
       apply congr_big; try auto.
       intros.
+    destruct (\sum_(i0 < 2^n | ~~select i0 b2) `|(vector (combine_list_aux zero_qubit e)) i0 0| ^+ 2 == 0) eqn:Hnot.
+    destruct (\sum_(i0 < 2^n | select i0 b2) `|(vector (combine_list_aux zero_qubit e)) i0 0| ^+ 2 == 0) eqn:Heq.
+      destruct (@frob n (combine_list_aux zero_qubit e) b2). split.
+        apply/eqP. apply (eqP Hnot).
+        apply/eqP. apply (eqP Heq).
+      rewrite Hnot; rewrite Heq. rewrite mxE.
+      destruct (select i b2) eqn:Hsel.
+         
+      rewrite (@vector_is_unit n (combine_list_aux zero_qubit e)). rewrite -sum_if_not.
+       
+        
