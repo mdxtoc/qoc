@@ -10,51 +10,79 @@ Import Num.Theory GRing.Theory.
 
 Require Import other_stuff complex_stuff.
 
+Section QubitVectorDef.
+
+Variable n: nat.
+
 (* The qubit datatype, parametrised by the length of the vector and a proof that it is a unit vector.
  * (qubit_vector_of n) is therefore the type of n-qubit vectors. *)
-Record qubit_vector_of (n: nat) := QubitVectorMixin {
-  vector: 'cV[complex_stuff.R [i]]_(2 ^ n);
-  vector_is_unit: \sum_(i < 2^n) `|vector i 0|^+2 = 1
+Structure qubit_vector_of := QubitVector {
+  vector:> 'cV[complex_stuff.R [i]]_(2 ^ n);
+  vector_is_unit: \sum_(i < 2^n) `|vector i 0| ^+ 2 == 1
 }.
 
-(* A putative 0-qubit vector, which we need for initial values sometimes.
- * Reasoning down from the 1-qubit vector, this is a 1x1 unit matrix. *)
-Program Definition zero_qubit: (qubit_vector_of 0) :=
-  (@QubitVectorMixin 0 (1%:M) _).
-Obligation 1.
-  rewrite big_ord1. rewrite mxE. rewrite normc_def. rewrite expr1n. rewrite expr0n. rewrite addr0. rewrite sqrtr1. rewrite expr1n //.
+Canonical qubit_vector_subType := Eval hnf in [subType for vector].
+
+Implicit Type qv: qubit_vector_of.
+
+Definition qubit_vector qv mkQV : qubit_vector_of :=
+  mkQV (let: QubitVector _ qvP := qv return \sum_(i < 2^n) `|qv i 0|^+2 == 1 in qvP).
+
+Lemma qubit_vectorE qv : qubit_vector (fun qvP => @QubitVector qv qvP) = qv.
+Proof.
+  by case: qv.
 Qed.
 
+End QubitVectorDef.
+
+Lemma zero_qubitP: \sum_(i < 2^0) `|((1:R[i])%:M) i 0| ^+ 2 == 1.
+Proof.
+  by rewrite big_ord1; rewrite mxE; rewrite normc_def; rewrite expr1n; rewrite expr0n; rewrite addr0; rewrite sqrtr1; rewrite expr1n.
+Qed.
+Canonical zero_qubit := QubitVector zero_qubitP.
+
+Section GateDef.
+
+Variable n: nat.
+
 (* The gate datatype, paramtetrised by its size (number of inputs) and proof that it is a unitary matrix *)
-Record gate_mixin_of (n: nat): Type := GateMixin {
-  gate: 'M[complex_stuff.R [i]]_(2 ^ n);
-  gate_is_unitary: unitarymx gate
+Structure gate_of := Gate {
+  matrix:> 'M[complex_stuff.R [i]]_(2 ^ n);
+  matrix_is_unitary: unitarymx matrix
 }.
+
+Canonical matrix_subType := Eval hnf in [subType for matrix].
+
+Implicit Type g: gate_of.
+
+Definition gate g mkG : gate_of :=
+  mkG (let: Gate _ gP := g return unitarymx g in gP).
+
+Lemma gateE g : gate (fun gP => @Gate g gP) = g.
+Proof.
+  by case: g.
+Qed.
+
+End GateDef.
 
 (* The apply operator; (apply q g) applies gate g to qubit vector q.
  * Needs proof that this results in a new qubit, which is by using the fact that gates are unitary matrices. *)
-Program Definition apply (n: nat) (q: qubit_vector_of n) (g:gate_mixin_of n): qubit_vector_of n :=
-  (@QubitVectorMixin _ (gate g *m vector q) _).
-Obligation 1.
-  intros n q g; destruct q as [q Hq]; destruct g as [g Hg]; simpl.
-  rewrite -conjugate_is_sum. rewrite -unitary_preserves_product;
-  [ rewrite !mxE; rewrite -Hq; apply eq_bigr; intros i _;
+Lemma applyP: forall n g q,
+  \sum_(i < 2^n) `|(matrix g *m vector q) i 0| ^+ 2 == 1.
+  intros n g q; destruct q as [q Hq]; destruct g as [g Hg]; simpl;
+  rewrite -conjugate_is_sum; rewrite -unitary_preserves_product;
+  [ rewrite mxE; rewrite -(eqP Hq); apply/eqP; apply eq_bigr; intros i _;
     rewrite mulrC; rewrite !mxE; symmetry; apply sqr_normc
   | apply Hg
-  ]. 
+  ].
 Qed.
+Canonical apply n g q := (@QubitVector n _ (applyP g q)).
 
-(* Definition of the matrix that forms the I gate *)
-Definition I_matrix: 'M[R [i]]_2 :=
-  'M{[:: [:: 1; 0];
-         [:: 0; 1]]}.
-
-(* The I gate (which needs a proof that the I matrix is unitary *)
-Program Definition I_gate := (@GateMixin 1 I_matrix _).
-Obligation 1.
-  apply/matrixP. intros x y; rewrite !mxE. rewrite !big_ord_recl. rewrite big_ord0; rewrite !mxE.
+Lemma I_gateP: (@unitarymx 2 'M{[:: [:: 1; 0]; [:: 0; 1]]}).
+  unfold unitarymx; apply/eqP; apply/matrixP; intros x y; rewrite !mxE; rewrite !big_ord_recl;
+  rewrite big_ord0. rewrite !mxE; simpl. 
   destruct x as [m H]; destruct m as [ | m]; destruct y as [m' H']; destruct m' as [ | m'];
-  [ 
+  [
   | destruct m' as [ | m'];
     [ rewrite mulr0; rewrite add0r; rewrite addr0
     | absurd (m'.+2 < 2)%N; auto; apply H'
@@ -70,61 +98,51 @@ Obligation 1.
       ]
     | absurd (m.+2 < 2)%N; auto; apply H
     ]
-  ]; simpl; try repeat (rewrite mulr0 || rewrite mul0r || rewrite addr0 || rewrite add0r || rewrite mul1r || rewrite mulr1);
+  ];
+  simpl; try repeat (rewrite mulr0 || rewrite mul0r || rewrite addr0 || rewrite add0r || rewrite mul1r || rewrite mulr1);
   rewrite oppr0 //.
 Qed.
+Canonical I_gate := (@Gate 1 _ I_gateP).
 
 (* Definition of the X gate *)
-Definition X_matrix: 'M[R [i]]_2 :=
-  'M{[:: [:: 0; 1];
-         [:: 1; 0]]}.
-
-Program Definition X_gate := (@GateMixin 1 X_matrix _).
-Obligation 1.
-  apply/matrixP; intros x y; rewrite !mxE; rewrite !big_ord_recl; rewrite big_ord0; rewrite !mxE;
+Lemma X_gateP: (@unitarymx 2 'M{[:: [:: 0; 1]; [:: 1; 0]]}).
+Proof.
+  apply/eqP. apply/matrixP; intros x y; rewrite !mxE; rewrite !big_ord_recl; rewrite big_ord0; rewrite !mxE;
   destruct x as [[ | [ | x]] Hx]; destruct y as [[ | [ | y]] Hy]; simpl;
   try (absurd (x.+2 < 2)%N; auto); try (absurd (y.+2 < 2)%N; auto);
   try repeat (rewrite mul0r || rewrite mulr0 || rewrite mulr1 || rewrite addr0 || rewrite add0r || rewrite oppr0 || rewrite mulNr || rewrite mulrN);
   auto.
 Qed.
+Canonical X_gate := (@Gate 1 _ X_gateP).
 
 (* Definition of the Y gate *)
-Definition Y_matrix: 'M[R [i]]_2 :=
-  ('M{[:: [:: 0; -'i];
-          [:: 'i; 0]]})%C.
-
-Program Definition Y_gate := (@GateMixin 1 Y_matrix _).
-Obligation 1.
-  apply/matrixP; intros x y; rewrite !mxE; rewrite !big_ord_recl; rewrite big_ord0; rewrite !mxE;
+Lemma Y_gateP: (@unitarymx 2 'M{[:: [:: 0; -'i]; [:: 'i; 0]]}).
+Proof.
+  apply/eqP. apply/matrixP; intros x y; rewrite !mxE; rewrite !big_ord_recl; rewrite big_ord0; rewrite !mxE;
   destruct x as [[ | [ | x]] Hx]; destruct y as [[ | [ | y]] Hy]; simpl;
   try (absurd (x.+2 < 2)%N; auto); try (absurd (y.+2 < 2)%N; auto);
   try repeat (rewrite mul0r || rewrite mulr0 || rewrite mulr1 || rewrite addr0 || rewrite add0r || rewrite oppr0 || rewrite mulNr || rewrite mulrN || rewrite opprK || rewrite -expr2 || rewrite sqr_i || rewrite complex_minus_i);
   auto.
 Qed.
+Canonical Y_gate := (@Gate 1 _ Y_gateP).
 
 (* Definition of the Z gate *)
-Definition Z_matrix: 'M[R [i]]_2 :=
-  'M{[:: [:: 1; 0];
-         [:: 0; -1]]}.
-
-Program Definition Z_gate := (@GateMixin 1 Z_matrix _ ).
-Obligation 1.
-  apply/matrixP; intros x y; rewrite !mxE; rewrite !big_ord_recl; rewrite big_ord0; rewrite !mxE;
+Lemma Z_gateP: (@unitarymx 2 'M{[:: [:: 1; 0]; [:: 0; -1]]}).
+Proof.
+  apply/eqP; apply/matrixP; intros x y; rewrite !mxE; rewrite !big_ord_recl; rewrite big_ord0; rewrite !mxE;
   destruct x as [[ | [ | x]] Hx]; destruct y as [[ | [ | y]] Hy]; simpl;
   try (absurd (x.+2 < 2)%N; auto); try (absurd (y.+2 < 2)%N; auto);
   try repeat (rewrite mul0r || rewrite mulr0 || rewrite mulr1 || rewrite addr0 || rewrite add0r || rewrite oppr0 || rewrite mulNr || rewrite mulrN);
   auto;
   rewrite -oppr0; unfold GRing.opp; simpl; rewrite !opprK //.
 Qed.
+Canonical Z_gate := (@Gate 1 _ Z_gateP).
 
 (* Definition of the Hadamard gate *)
-Definition hadamard_matrix: 'M[R [i]]_2 :=
-  ('M{[:: [:: (1/Num.sqrt (2%:R))%:C; (1/Num.sqrt (2%:R))%:C];
+Lemma hadamard_gateP: (@unitarymx 2 'M{[:: [:: (1/Num.sqrt (2%:R))%:C; (1/Num.sqrt (2%:R))%:C];
           [:: (1/Num.sqrt (2%:R))%:C; -(1/Num.sqrt (2%:R))%:C]]})%C.
-
-Program Definition hadamard_gate := (@GateMixin 1 hadamard_matrix _ ).
-Obligation 1.
-  apply/matrixP; intros x y; rewrite !mxE; rewrite !big_ord_recl; rewrite big_ord0; rewrite !mxE;
+Proof.
+  apply/eqP; apply/matrixP; intros x y; rewrite !mxE; rewrite !big_ord_recl; rewrite big_ord0; rewrite !mxE;
   destruct x as [[ | [ | x]] Hx]; destruct y as [[ | [ | y]] Hy]; simpl;
   try (absurd (x.+2 < 2)%N; auto); try (absurd (y.+2 < 2)%N; auto); rewrite addr0; rewrite !oppr0.
   rewrite mulr_real_complex. rewrite mulf_div. rewrite mulr1. rewrite -expr2. rewrite sqr_sqrtr; [|apply ler0n].
@@ -145,6 +163,7 @@ Obligation 1.
   rewrite !mul1r; rewrite !mulr_natl; rewrite [2%:R *+ 2]mulr2n.
   rewrite divrr //; try (apply unitf_gt0; apply addr_gt0; apply ltr0Sn).
 Qed.
+Canonical hadamard_gate := (@Gate 1 _ hadamard_gateP).
 
 (* Here we begin the definitions pertaining to measurement. *)
 
@@ -183,7 +202,7 @@ Definition measure_1 n (b: 'I_n) (q: qubit_vector_of n) :=
 (* The proofs that these new vectors are unitary. *)
 Lemma measure_aux: forall I (r: seq I) P (F: I -> R[i]), 
   (\sum_(i <- r | P i) `|F i|^+2) \is a GRing.unit ->
-  \sum_(i <- r | P i) (`|F i / sqrtc (\sum_(i <- r | P i) `|F i|^+2)|^+2) = 1.
+  \sum_(i <- r | P i) (`|F i / sqrtc (\sum_(i <- r | P i) `|F i|^+2)|^+2) == 1.
 Proof.
   intros I r P F; destruct r;
   [ rewrite !big_nil; intros H; absurd (((0:R)%:C)%C \is a GRing.unit);
@@ -194,7 +213,7 @@ Proof.
     [ rewrite normf_div; rewrite expr_div_n; replace (\sum_(j <- r | P j) `|F j / sqrtc _| ^+ 2) with
       (\sum_(j <- r | P j) `|F j| ^+ 2 / `|sqrtc (`|F i| ^+ 2 + \sum_(j0 <- r | P j0) `|F j0| ^+ 2)| ^+ 2);
       [ rewrite -mulr_suml; rewrite -mulrDl; rewrite sqrtc_norm;
-        [ rewrite divrr; [ reflexivity | apply H ]
+        [ rewrite divrr //; apply H
         | apply addr_ge0; [ apply exprn_ge0; apply normr_ge0 | apply sumr_ge0; intros x _; apply exprn_ge0; apply normr_ge0 ]
         ]
       | apply eq_bigr; intros x _; rewrite Num.Theory.normf_div; rewrite expr_div_n //
@@ -202,7 +221,7 @@ Proof.
     | replace (\sum_(j <- r | P j) `|F j / sqrtc _| ^+ 2) with
       (\sum_(j <- r | P j) `|F j|^+2 / `|sqrtc (\sum_(j0 <- r | P j0) `|F j0|^+2)|^+2);
       [ rewrite -mulr_suml; rewrite sqrtc_norm;
-        [ rewrite divrr; [ reflexivity | apply H ]
+        [ rewrite divrr //; apply H
         | apply sumr_ge0; intros x _; apply exprn_ge0; apply normr_ge0
         ]
       | apply eq_bigr; intros x _; rewrite normf_div; rewrite expr_div_n //
@@ -212,7 +231,7 @@ Proof.
 Qed.
 
 Lemma measure0_unitary: forall n b q,
-  \sum_(i < 2^n) `|(measure_0 b q) i 0|^+2 = 1.
+  \sum_(i < 2^n) `|(measure_0 b q) i 0|^+2 == 1.
 Proof.
   move=> n b q. unfold measure_0. unfold prob_0.
   destruct (\sum_(i0 < 2^n | ~~select i0 b) `|(vector q) i0 0| ^+ 2 == 0) eqn:H.
@@ -227,7 +246,7 @@ Proof.
 Qed.
 
 Lemma measure1_unitary: forall n b q,
-  \sum_(i < 2^n) `|(measure_1 b q) i 0|^+2 = 1.
+  \sum_(i < 2^n) `|(measure_1 b q) i 0|^+2 == 1.
 Proof.
   move=> n b q. unfold measure_1. unfold prob_1.
   destruct (\sum_(i0 < 2^n | select i0 b) `|(vector q) i0 0| ^+ 2 == 0) eqn:H.
@@ -246,36 +265,27 @@ Qed.
  * new qubit vector that results in each case. *)
 Definition measure_p (n: nat)  (b: 'I_n) (q: qubit_vector_of n):
            seq (R[i] * qubit_vector_of n) :=
-  [:: (prob_0 b q, (QubitVectorMixin (measure0_unitary b q)));
-      (prob_1 b q, (QubitVectorMixin (measure1_unitary b q)))].
+  [:: (prob_0 b q, (QubitVector (measure0_unitary b q)));
+      (prob_1 b q, (QubitVector (measure1_unitary b q)))].
 
 (* Qubit vector casting. If m = n, then the datatypes (qubit_vector m) and (qubit_vector n) are interchangeable. *)
-Program Definition cast (m: nat) (q: qubit_vector_of m) (n: nat) (Heq: m = n): (qubit_vector_of n) :=
-  (@QubitVectorMixin _ (castmx _ (vector q)) _).
-Obligation 1.
-  intros; split; try rewrite Heq; reflexivity.
-Qed.
-Obligation 2.
-  intros. rewrite <- (vector_is_unit q). 
-  assert (2^n = 2^m)%N. rewrite Heq; reflexivity.
-  apply sum_cast with H.
+Lemma castP:
+  forall m q n (Heq: m = n), \sum_(i < 2^n) `|(castmx (f_equal (expn 2) Heq, (eq_S 0 0 (eqP (eq_refl 0)))%N) (vector q)) i 0| ^+ 2 == 1.
+Proof.
+  intros. rewrite <- (eqP (vector_is_unit q)).
+  apply/eqP. apply sum_cast with (f_equal (expn 2) (sym_eq Heq)).
     auto.
-    intros. rewrite castmxE. rewrite cast_ord_id. replace (cast_ord (esym (cast_obligation_1 Heq).1) x) with (cast_ord H x).
-      reflexivity.
-      unfold cast_ord.
-      rewrite (eq_irrelevance (cast_ord_proof x H) (cast_ord_proof x (esym (cast_obligation_1 Heq).1))).
-      reflexivity.
+    intros. rewrite castmxE. rewrite cast_ord_id.
+      unfold cast_ord. repeat f_equal. apply eq_irrelevance.
 Qed.
+Canonical cast m q n Heq := (@QubitVector n _ (@castP m q n Heq)).
 
 (* Qubit vector combination. An m-qubit vector and an n-qubit vector can be combined (by taking their tensor
  * product) into an m+n-qubit vector. *)
-Program Definition combine (m n: nat) (q1: qubit_vector_of m) (q2: qubit_vector_of n): (qubit_vector_of (m+n)) :=
-  (@QubitVectorMixin _ (castmx _ (vector q1 *t vector q2)) _).
-Obligation 1.
-  intros m n q1 q2; split; [ symmetry; apply expnD | auto ].
-Qed.
-Obligation 2.
-  intros m n q1 q2. simpl.
+Lemma combineP:
+  forall m n q1 q2, \sum_(i < 2^(m+n)) `|(castmx (sym_eq (expnD 2 m n), (eq_S 0 0 (eqP (eq_refl 0)))%N) (vector q1 *t vector q2)) i 0| ^+ 2 == 1.
+Proof.
+  intros m n q1 q2. apply/eqP.
   replace (\sum_(i < 2^(m+n)) _) with
     (\sum_(i < 2^m * 2^n) `|(vector q1 *t vector q2) i 0| ^+ 2).
   transitivity (\sum_(i < 2^m*2^n) `|vector q1 (mxtens_unindex i).1 (mxtens_unindex (m:=1) (n:=1) 0).1| ^+ 2 * `|vector q2 (mxtens_unindex i).2 (mxtens_unindex (m:=1) (n:=1) 0).2| ^+ 2).
@@ -287,18 +297,25 @@ Obligation 2.
   replace (\sum_(j<2^n) `|q2 j _|^+2) with (1:R[i]).
   rewrite (eq_bigr _ (fun P x => mulr1 _)).
   replace (\sum_(i<2^m) `|q1 i _|^+2) with (1:R[i]). reflexivity.
-    rewrite -Hq1. apply eq_bigr. intros i _. replace (q1 i 0) with (q1 i (Ordinal (mxtens_index_proof1 (m:=1) (n:=1) 0))).
+    rewrite -(eqP Hq1). apply eq_bigr. intros i _. replace (q1 i 0) with (q1 i (Ordinal (mxtens_index_proof1 (m:=1) (n:=1) 0))).
       reflexivity. transitivity (q1 i (Ordinal (ltn0Sn 0))). replace (Ordinal (ltn0Sn 0)) with (Ordinal (mxtens_index_proof1 (m:=1) (n:=1) 0)).
       reflexivity. apply/val_eqP. simpl. auto.
       reflexivity.
-    rewrite -Hq2. apply eq_bigr. intros i _. replace (q2 i 0) with (q2 i (Ordinal (mxtens_index_proof2 (m:=1) (n:=1) 0))).
+    rewrite -(eqP Hq2). apply eq_bigr. intros i _. replace (q2 i 0) with (q2 i (Ordinal (mxtens_index_proof2 (m:=1) (n:=1) 0))).
       reflexivity. transitivity (q2 i (Ordinal (ltn0Sn 0))). replace (Ordinal (ltn0Sn 0)) with (Ordinal (mxtens_index_proof2 (m:=1) (n:=1) 0)).
       reflexivity. apply/val_eqP. simpl. auto.
       reflexivity.
-    apply sum_cast with (combine_obligation_1 m n).1. auto. intros. rewrite castmxE. rewrite cast_ordK. rewrite cast_ord_id. reflexivity.
+    apply sum_cast with (sym_eq (expnD 2 m n)). auto. intros. rewrite castmxE. rewrite cast_ordK. rewrite cast_ord_id. reflexivity.
+Qed.
+Canonical combine m n q1 q2 := (@QubitVector (m+n) _ (@combineP m n q1 q2)).
+
+Lemma combine0q: forall n, left_id zero_qubit (@combine 0 n).
+Proof.
+  intros n x; destruct x as [x Hx]; unfold combine.
+  apply val_inj. simpl. rewrite tens_scalar1mx. rewrite castmx_comp. apply/matrixP.
+  intros i j. rewrite !castmxE. simpl; f_equal; apply cast_ord_id.
 Qed.
 
-Check thead.
 (* C1ombine a list of k 1-qubit vectors into one k-qubit vector. We use the 0-qubit vector as an initial value
  * here, as it is the neutral element of the tensor product. *)
 Program Fixpoint combine_tuple_aux (n: nat) (q: qubit_vector_of n) (k: nat) (l: k .-tuple (qubit_vector_of 1)) { struct k }: (qubit_vector_of (n+k)) :=
@@ -322,18 +339,25 @@ Qed.
 Definition combine_tuple (k: nat) (l: k.-tuple (qubit_vector_of 1)): (qubit_vector_of k) :=
   (combine_tuple_aux zero_qubit l).
 
-Axiom behead_tupleE: forall T k h (l: k.-tuple T), behead_tuple ([tuple of h :: l]) = [tuple of l].
+Lemma behead_tupleE: forall T k h (l: k.-tuple T), behead_tuple ([tuple of h :: l]) = [tuple of l].
+Proof.
+  intros. apply eq_from_tnth. intro. 
+    rewrite !(tnth_nth h). simpl.
+    reflexivity. 
+Qed.
 
 Lemma combine_tupleE: forall k (l: k.-tuple (qubit_vector_of 1)) i,
   vector (combine_tuple l) i 0 =
   \prod_(n < k) (vector (tnth l n)) (if (select i n) then 1 else 0) 0.
 Proof.
-  intros. unfold combine_tuple. induction k.
-    simpl. rewrite !big_ord0. rewrite -Eqdep_dec.eq_rect_eq_dec. unfold zero_qubit. rewrite mxE. rewrite ord1 //. 
-    intros; apply PeanoNat.Nat.eq_dec. 
-    simpl. rewrite -!Eqdep_dec.eq_rect_eq_dec. rewrite !big_ord_recl.
-    generalize l. clear l. case/tupleP. intros h l.
-    rewrite !theadE. rewrite tnth0. rewrite behead_tupleE.
+  intros. unfold combine_tuple. induction k;
+  [ simpl; rewrite !big_ord0; rewrite -Eqdep_dec.eq_rect_eq_dec; unfold zero_qubit;
+    [ rewrite mxE; rewrite ord1 //
+    | intros; apply PeanoNat.Nat.eq_dec
+    ]
+  | simpl; rewrite -!Eqdep_dec.eq_rect_eq_dec; try (intros; apply PeanoNat.Nat.eq_dec); rewrite !big_ord_recl
+  ].
+
 
 (* Definition of decomposability. A qubit vector is decomposable if it can be written as the combination of
  * two qubit vectors. It is maximally decomposable if it can be written as a combination of 1-qubit vectors. *)

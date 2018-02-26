@@ -14,7 +14,7 @@ Definition conjugate m n (mx: 'M[R [i]]_(m, n)) :=
   map_mx conjc mx.
 
 Definition unitarymx (n: nat) (mx: 'M[R [i]]_n) :=
-  (conjugate mx)^T *m mx = 1%:M.
+  (conjugate mx)^T *m mx == 1%:M.
 
 Lemma rc_add: forall (a b: R),
   (a%:C + b%:C = (a + b)%:C)%C.
@@ -102,7 +102,7 @@ Lemma unitary_preserves_product: forall n (v1 v2: 'cV[R [i]]_n) (mx: 'M[R [i]]_n
    unitarymx mx -> (conjugate v1)^T *m v2 = (conjugate (mx *m v1))^T *m (mx *m v2).
 Proof.
   intros n v1 v2 mx H. rewrite conjugate_mulmx. rewrite trmx_mul. rewrite -mulmxA.
-  rewrite[(conjugate mx)^T *m (mx *m v2)]mulmxA. rewrite H. rewrite mul1mx. reflexivity.
+  rewrite[(conjugate mx)^T *m (mx *m v2)]mulmxA. rewrite (eqP H). rewrite mul1mx. reflexivity.
 Qed.
 
 Lemma conjugate_is_sum:
