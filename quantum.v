@@ -316,12 +316,20 @@ Proof.
   intros i j. rewrite !castmxE. simpl; f_equal; apply cast_ord_id.
 Qed.
 
-(* C1ombine a list of k 1-qubit vectors into one k-qubit vector. We use the 0-qubit vector as an initial value
- * here, as it is the neutral element of the tensor product. *)
+
+Lemma combineq0: forall n q, (@combine n 0 q zero_qubit) = (cast q (sym_eq (addn0 n))).
+Proof.
+  intros n x; destruct x as [x Hx]; unfold cast; unfold combine.
+  apply val_inj; simpl. rewrite tens_mx_scalar. rewrite castmx_comp. apply/matrixP.
+  intros i j. rewrite !castmxE. simpl. rewrite scale1r. f_equal; unfold cast_ord; f_equal; apply eq_irrelevance.
+Qed.
+
+(* Combine a list of k 1-qubit vectors into one k-qubit vector. We use the 0-qubit vector as an initial value
+   here, as it is the neutral element of the tensor product. *)
 Program Fixpoint combine_tuple_aux (n: nat) (q: qubit_vector_of n) (k: nat) (l: k .-tuple (qubit_vector_of 1)) { struct k }: (qubit_vector_of (n+k)) :=
   match k with
   | 0 => q
-  | k'.+1 => (@combine_tuple_aux n.+1 (@combine 1 n (@thead k' _ l) q) k' (behead_tuple l))
+  | k'.+1 => (@combine_tuple_aux n.+1 (@combine n 1 q (@thead k' _ l)) k' (behead_tuple l))
   end.
 Obligation 1.
   intros. symmetry. apply addn0.
@@ -330,9 +338,12 @@ Obligation 2.
   intros. symmetry. apply Heq_k.
 Qed.
 Obligation 3.
-  intros. simpl. rewrite <- Heq_k. reflexivity.
+  intros. rewrite addn1 //.
 Qed.
 Obligation 4.
+  intros. simpl. rewrite <- Heq_k. reflexivity.
+Qed.
+Obligation 5.
   intros. rewrite addSn. rewrite addnS //.
 Qed.
 
