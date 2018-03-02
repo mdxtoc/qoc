@@ -280,6 +280,12 @@ Proof.
 Qed.
 Canonical cast m q n Heq := (@QubitVector n _ (@castP m q n Heq)).
 
+Lemma cast_id: forall n (h: qubit_vector_of n) (Heq: n = n),
+  cast h Heq = h.
+Proof.
+  intros; destruct h as [h Hh]. unfold cast. apply val_inj; simpl; apply castmx_id.
+Qed.
+
 (* Qubit vector combination. An m-qubit vector and an n-qubit vector can be combined (by taking their tensor
  * product) into an m+n-qubit vector. *)
 Lemma combineP:
@@ -316,7 +322,6 @@ Proof.
   intros i j. rewrite !castmxE. simpl; f_equal; apply cast_ord_id.
 Qed.
 
-
 Lemma combineq0: forall n q, (@combine n 0 q zero_qubit) = (cast q (sym_eq (addn0 n))).
 Proof.
   intros n x; destruct x as [x Hx]; unfold cast; unfold combine.
@@ -324,39 +329,59 @@ Proof.
   intros i j. rewrite !castmxE. simpl. rewrite scale1r. f_equal; unfold cast_ord; f_equal; apply eq_irrelevance.
 Qed.
 
+Lemma combineA: forall m n k (h: qubit_vector_of m) (h': qubit_vector_of n) (q: qubit_vector_of k) H,
+ cast (combine (combine h h') q) H = combine h (combine h' q).
+Proof.
+  intros. apply val_inj; simpl. rewrite !castmx_comp. 
+
 (* Combine a list of k 1-qubit vectors into one k-qubit vector. We use the 0-qubit vector as an initial value
    here, as it is the neutral element of the tensor product. *)
 Program Fixpoint combine_tuple_aux (n: nat) (q: qubit_vector_of n) (k: nat) (l: k .-tuple (qubit_vector_of 1)) { struct k }: (qubit_vector_of (n+k)) :=
-  match k with
-  | 0 => q
-  | k'.+1 => (@combine_tuple_aux n.+1 (@combine n 1 q (@thead k' _ l)) k' (behead_tuple l))
-  end.
+  (match k as m return (k = m) -> _ with
+  | 0     => fun H: (k = 0)%N =>
+             cast q _ 
+  | k'.+1 => fun H: k = k'.+1 =>
+             cast (@combine_tuple_aux n.+1 (cast (@combine n 1 q (@thead k' _ (tcast _ l))) _) k' (tcast _ (behead_tuple l))) _
+  end) (Logic.eq_refl k).
 Obligation 1.
-  intros. symmetry. apply addn0.
+  intros. rewrite H. symmetry. apply addn0.
 Qed.
 Obligation 2.
-  intros. symmetry. apply Heq_k.
+  intros. apply H.
 Qed.
 Obligation 3.
   intros. rewrite addn1 //.
 Qed.
 Obligation 4.
-  intros. simpl. rewrite <- Heq_k. reflexivity.
+  intros. simpl. rewrite H. reflexivity.
 Qed.
 Obligation 5.
-  intros. rewrite addSn. rewrite addnS //.
+  intros. rewrite H. rewrite addSn. rewrite addnS //.
 Qed.
 
 Definition combine_tuple (k: nat) (l: k.-tuple (qubit_vector_of 1)): (qubit_vector_of k) :=
   (combine_tuple_aux zero_qubit l).
 
-Lemma behead_tupleE: forall T k h (l: k.-tuple T), behead_tuple ([tuple of h :: l]) = [tuple of l].
+Lemma combine_tuple_rec: forall (k: nat) (n: nat) (h: qubit_vector_of n) (t: k.-tuple (qubit_vector_of 1)),
+  combine_tuple_aux h t = combine h (combine_tuple t).
 Proof.
-  intros. apply eq_from_tnth. intro. 
-    rewrite !(tnth_nth h). simpl.
-    reflexivity. 
-Qed.
+  intros. unfold combine_tuple. generalize n h; clear n h; induction k; intros n h;
+  [ simpl; rewrite !cast_id; rewrite combineq0; f_equal; apply eq_irrelevance
+  |
+  ].
+  simpl. rewrite !cast_id. rewrite !tcast_id. generalize t; clear t; case/tupleP. intros h' t.
+    rewrite !theadE. rewrite behead_tupleE. rewrite combine0q.
+    rewrite IHk. rewrite IHk. rewrite combine0q. rewrite (IHk [tuple of t] (1%N) h'). 
+    apply val_inj; simpl. rewrite !castmx_comp. 
 
+
+L
+apply val_inj. simpl. apply val_inj; simpl. reflexivity. reflexivity. rewrite -!Eqdep_dec.eq_rect_eq_dec.  unfold combine_tuple_aux_obligation_1.
+simpl; rewrite -!Eqdep_dec.eq_rect_eq_dec; try (intros; apply PeanoNat.Nat.eq_dec); rewrite combineq0; symmetry; apply cast_id.
+ 
+  simpl; rewrite -!Eqdep_dec.eq_rect_eq_dec; try (intros; apply PeanoNat.Nat.eq_dec).
+  generalize t; clear t; case/tupleP; intros h' t; rewrite !theadE; rewrite behead_tupleE.
+  rewrite combine0q. rewrite IHk. 1
 Lemma combine_tupleE: forall k (l: k.-tuple (qubit_vector_of 1)) i,
   vector (combine_tuple l) i 0 =
   \prod_(n < k) (vector (tnth l n)) (if (select i n) then 1 else 0) 0.
@@ -366,8 +391,11 @@ Proof.
     [ rewrite mxE; rewrite ord1 //
     | intros; apply PeanoNat.Nat.eq_dec
     ]
-  | simpl; rewrite -!Eqdep_dec.eq_rect_eq_dec; try (intros; apply PeanoNat.Nat.eq_dec); rewrite !big_ord_recl
+  |
   ].
+  simpl; rewrite -!Eqdep_dec.eq_rect_eq_dec; try (intros; apply PeanoNat.Nat.eq_dec); rewrite !big_ord_recl.
+  generalize l. clear l. case/tupleP. intros h l.
+  rewrite !theadE. rewrite tnth0. rewrite behead_tupleE. rewrite combine0q.
 
 
 (* Definition of decomposability. A qubit vector is decomposable if it can be written as the combination of

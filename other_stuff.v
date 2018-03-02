@@ -75,3 +75,23 @@ Proof.
   | rewrite !big_ord_recl; destruct (P ord0); [ rewrite add0r | rewrite addr0 ]; rewrite IHm //
   ].
 Qed.
+
+Lemma behead_tupleE: forall T k h (l: k.-tuple T), behead_tuple ([tuple of h :: l]) = [tuple of l].
+Proof.
+  intros. apply eq_from_tnth. intro. 
+    rewrite !(tnth_nth h). simpl.
+    reflexivity. 
+Qed.
+
+Lemma gniarf: forall x y z i, (@mxtens_unindex x (y * z) i).1 = (@mxtens_unindex x y (@mxtens_unindex (x * y) z (cast_ord (mulnA x y z) i)).1).1.
+Proof.
+  intros. destruct x. destruct y. destruc
+Lemma tensmxA: forall (R: ringType) ma na mb nb mc nc (a: 'M[R]_(ma, na)) (b: 'M_(mb, nb)) (c: 'M_(mc, nc)),
+  a *t (b *t c) = (castmx (esym (mulnA ma mb mc), esym (mulnA na nb nc)) (a *t b *t c)).
+Proof.
+  intros. apply/matrixP=> i j. rewrite castmxE. rewrite !esymK. rewrite !mxE. rewrite mulrA. f_equal. f_equal.
+  cut (
+    intros X. rewrite !X //.      
+  destruct ma. destruct na. destruct (mb * mc)%N. destruct (nb * nc)%N.
+    simpl. auto.
+
