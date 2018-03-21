@@ -165,6 +165,16 @@ Proof.
 Qed.
 Canonical hadamard_gate := (@Gate 1 _ hadamard_gateP).
 
+(* Definition of the Cnot gate *)
+Lemma cnot_gateP: (@unitarymx 4 'M{[:: [:: 1; 0; 0; 0]; [:: 0; 1; 0; 0]; [:: 0; 0; 0; 1]; [:: 0; 0; 1; 0]]}).
+Proof.
+  apply/eqP; apply/matrixP; intros x y; rewrite !mxE; rewrite !big_ord_recl; rewrite big_ord0; rewrite !mxE.
+  destruct x as [[ | [ | [ | [ | x]]]] Hx]; destruct y as [[ | [ | [ | [ | y]]]] Hy]; simpl;
+  try (absurd (x.+4 < 4)%N; auto); try (absurd (y.+4 < 4)%N; auto);  
+  try repeat (rewrite !mulr0 || rewrite !mul0r || rewrite !addr0 || rewrite !add0r || rewrite !mulr1 || rewrite !oppr0 || reflexivity).
+Qed.
+Canonical cnot_gate := (@Gate 2 _ cnot_gateP).
+
 (* Here we begin the definitions pertaining to measurement. *)
 
 (* A binary predicate to select the parts of a qubit vector that represent a specific qubit measuring as 1.
