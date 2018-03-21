@@ -83,15 +83,93 @@ Proof.
     reflexivity. 
 Qed.
 
-Lemma gniarf: forall x y z i, (@mxtens_unindex x (y * z) i).1 = (@mxtens_unindex x y (@mxtens_unindex (x * y) z (cast_ord (mulnA x y z) i)).1).1.
+Lemma ordinal_eq: forall m i j Hi Hj, i = j -> (@Ordinal m i Hi) = (@Ordinal m j Hj).
 Proof.
-  intros. destruct x. destruct y. destruc
-Lemma tensmxA: forall (R: ringType) ma na mb nb mc nc (a: 'M[R]_(ma, na)) (b: 'M_(mb, nb)) (c: 'M_(mc, nc)),
-  a *t (b *t c) = (castmx (esym (mulnA ma mb mc), esym (mulnA na nb nc)) (a *t b *t c)).
-Proof.
-  intros. apply/matrixP=> i j. rewrite castmxE. rewrite !esymK. rewrite !mxE. rewrite mulrA. f_equal. f_equal.
-  cut (
-    intros X. rewrite !X //.      
-  destruct ma. destruct na. destruct (mb * mc)%N. destruct (nb * nc)%N.
-    simpl. auto.
+  intros. generalize Hi. clear Hi. rewrite H. intros Hi. rewrite (eq_irrelevance Hi Hj) //.
+Qed.
 
+Lemma leq_lt: forall a b: nat, (a >= b)%N -> ~(b > a)%N.
+Proof.
+  intros. apply/elimF. Focus 2. rewrite leqNgt in H. apply negbTE. apply H.
+    destruct (a < b)%N; [ apply ReflectT | apply ReflectF ]; auto.
+Qed.
+ 
+Lemma blerp: forall a b c d x, 
+  (a * x + b = c * x + d -> b < x -> d < x -> a = c /\ b = d)%N.
+Proof.
+  intros. generalize a c H. clear a c H. double induction a c.
+    split. reflexivity. rewrite !mul0n in H. rewrite !add0n in H. exact H.
+    rewrite !mul0n. rewrite !add0n. intros.
+      absurd (b < x)%N. rewrite H2. apply leq_lt. apply leq_trans with (n.+1 * x)%N.
+        apply leq_pmull. auto. apply leq_addr.
+        apply H0.
+    rewrite !mul0n. rewrite !add0n. intros.
+      absurd (d < x)%N. rewrite -H2. apply leq_lt. apply leq_trans with (n.+1 * x)%N.
+        apply leq_pmull. auto. apply leq_addr.
+        apply H1.
+   intros. assert (n0 * x + b = n * x + d)%N.
+     rewrite !mulSnr in H3. rewrite addnAC in H3. rewrite (addnAC (n*x)%N x d) in H3.
+     apply/eqP. rewrite -(eqn_add2r x). apply/eqP. apply H3. split.
+       f_equal. apply (proj1 (H2 n H4)).
+       apply (proj2 (H2 n H4)).
+Qed.
+
+Lemma implP: forall A B,
+  is_true (A ==> B) -> is_true A -> is_true B.
+Proof.
+  intros. destruct A. apply H.
+  inversion H0.
+Qed.
+
+Lemma andP: forall A B,
+  is_true (A && B) <-> is_true A /\ is_true B.
+Proof.
+  split.
+    intros. destruct A. destruct B.
+     auto.
+     inversion H.
+     inversion H.
+    intros. destruct A. destruct B.
+      auto.
+      destruct H. inversion H0.
+      destruct H. inversion H.
+Qed.
+
+Lemma modn: forall x y z,
+ (0 < y)%N -> x %% (z * y) = x %[mod y]%N.
+Proof.
+  intros. rewrite !modn_def.
+  case:edivnP. intros q r. case:edivnP. intros q' r'. case:edivnP. intros q'' r''. intros. simpl.
+    simpl in e1. rewrite e1 in e0. clear e1. rewrite e in e0. clear e. rewrite mulnA in e0. rewrite addnA in e0.
+    rewrite -mulnDl in e0. symmetry. apply (blerp e0).
+    apply (implP i). apply H.
+    apply (implP i1). apply H.
+Qed.
+
+Lemma mxtensA: forall (R: ringType) ma na mb nb mc nc (Hma: (0 < ma)%N) (Hna: (0 < na)%N) (Hmb: (0 < mb)%N)
+  (Hnb: (0 < nb)%N) (Hmc: (0 < mc)%N) (Hnc: (0 < nc)%N) (a: 'M[R]_(ma, na)) (b: 'M[R]_(mb, nb)) (c: 'M[R]_(mc, nc)),
+  castmx (mulnA ma mb mc, mulnA na nb nc) (a *t (b *t c)) = a *t b *t c.
+Proof.
+  intros; apply/matrixP; intros i j. rewrite castmxE. unfold cast_ord. unfold tensmx. rewrite !mxE. simpl. rewrite mulrA. f_equal. f_equal.
+    rewrite (ordinal_eq (mxtens_index_proof1 (Ordinal (cast_ord_proof i (esym (mulnA ma mb mc))))) (mxtens_index_proof1 (Ordinal (mxtens_index_proof1 i)))).
+    rewrite (ordinal_eq (mxtens_index_proof1 (Ordinal (cast_ord_proof j (esym (mulnA na nb nc))))) (mxtens_index_proof1 (Ordinal (mxtens_index_proof1 j)))).
+      reflexivity. rewrite -divnMA. rewrite (mulnC nc nb). auto.
+      rewrite -divnMA. rewrite (mulnC mc mb). auto.
+    rewrite (ordinal_eq (mxtens_index_proof1 (Ordinal (mxtens_index_proof2 (Ordinal (cast_ord_proof i (esym (mulnA ma mb mc))))))) (mxtens_index_proof2 (Ordinal (mxtens_index_proof1 i)))).
+    rewrite (ordinal_eq (mxtens_index_proof1 (Ordinal (mxtens_index_proof2 (Ordinal (cast_ord_proof j (esym (mulnA na nb nc))))))) (mxtens_index_proof2 (Ordinal (mxtens_index_proof1 j)))).
+      reflexivity.
+      simpl. rewrite !modn_def. case: edivnP =>  q r. case: edivnP => q' r'. simpl. intros. rewrite e0 in e. rewrite mulnA in e.
+      rewrite divnMDl in e.
+      apply (blerp e). rewrite ltn_divLR. apply (implP i1). rewrite muln_gt0. apply <- andP. split. apply Hnb. apply Hnc. apply Hnc.
+      apply (implP i0). apply Hnb. apply Hnc.
+      simpl.  rewrite !modn_def. case: edivnP =>  q r. case: edivnP => q' r'. simpl. intros. rewrite e0 in e. rewrite mulnA in e.
+      rewrite divnMDl in e.
+      apply (blerp e). rewrite ltn_divLR. apply (implP i1). rewrite muln_gt0. apply <- andP. split. apply Hmb. apply Hmc. apply Hmc.
+      apply (implP i0). apply Hmb. apply Hmc.
+    rewrite (ordinal_eq (mxtens_index_proof2 (Ordinal (mxtens_index_proof2 (Ordinal (cast_ord_proof i (esym (mulnA ma mb mc))))))) (mxtens_index_proof2 i)).
+    rewrite (ordinal_eq (mxtens_index_proof2 (Ordinal (mxtens_index_proof2 (Ordinal (cast_ord_proof j (esym (mulnA na nb nc))))))) (mxtens_index_proof2 j)).
+      reflexivity.
+      simpl. apply modn. apply Hnc.
+      simpl. apply modn. apply Hmc.
+Qed.
+ 
