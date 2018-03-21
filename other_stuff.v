@@ -172,4 +172,3 @@ Proof.
       simpl. apply modn. apply Hnc.
       simpl. apply modn. apply Hmc.
 Qed.
- 
