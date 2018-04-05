@@ -296,6 +296,14 @@ Proof.
   intros; destruct h as [h Hh]. unfold cast. apply val_inj; simpl; apply castmx_id.
 Qed.
 
+Lemma cast_irrelevance: forall n (h: qubit_vector_of n) n' (H1 H2: n = n'),
+  cast h H1 = cast h H2.
+Proof.
+  intros. apply val_inj; simpl. apply/matrixP. intros i j. rewrite !castmxE. unfold cast_ord. simpl.
+  rewrite (ordinal_eq (cast_ord_proof i (esym (f_equal (expn 2) H1))) (cast_ord_proof i (esym (f_equal (expn 2) H2)))).
+    reflexivity. reflexivity.
+Qed.
+
 (* Qubit vector combination. An m-qubit vector and an n-qubit vector can be combined (by taking their tensor
  * product) into an m+n-qubit vector. *)
 Lemma combineP:
@@ -342,32 +350,99 @@ Qed.
 Lemma combineA: forall m n k (h: qubit_vector_of m) (h': qubit_vector_of n) (q: qubit_vector_of k) H,
  cast (combine (combine h h') q) H = combine h (combine h' q).
 Proof.
-  intros. apply val_inj; simpl. rewrite !castmx_comp. 
+  intros. apply val_inj; simpl. rewrite !castmx_comp. apply/matrixP. intros i j. rewrite !castmxE.
+  rewrite !mxE. rewrite !castmxE. rewrite !mxE. simpl. rewrite mulrA. f_equal. f_equal.
+    rewrite (ordinal_eq (mxtens_index_proof1 (cast_ord (esym (Logic.eq_sym (expnD 2 m n)))
+           (Ordinal
+              (mxtens_index_proof1
+                 (cast_ord (esym (etrans (Logic.eq_sym (expnD 2 (m + n) k)) (f_equal (expn 2) H))) i)))))
+      (mxtens_index_proof1 (cast_ord (esym (Logic.eq_sym (expnD 2 m (n + k)))) i))).
+    rewrite (ordinal_eq 
+       (@mxtens_index_proof1 1 1
+        (@cast_ord 1 1 (@esym nat 1 1 (eq_S 0 0 ((@eqP nat_eqType 0 0) (eqxx 0))))%N
+           (@Ordinal 1 (j %/ 1)
+              (@mxtens_index_proof1 1 1
+                 (@cast_ord 1 1
+                    (@esym nat 1 1
+                       (@etrans nat 1 1 1 (eq_S 0 0 ((@eqP nat_eqType 0 0) (eqxx 0)))
+                          (eq_S 0 0 ((@eqP nat_eqType 0 0) (eqxx 0)))))%N j)))))
+       (@mxtens_index_proof1 1 1 (@cast_ord 1 1 (@esym nat 1 1 (eq_S 0 0 ((@eqP nat_eqType 0 0) (eqxx 0))))%N j))).
+    reflexivity.
+      rewrite divn1 //.
+      simpl. rewrite -divnMA. rewrite (mulnC (2^k) (2^n))%N. rewrite (expnD 2 n k). reflexivity. 
+    rewrite (ordinal_eq (mxtens_index_proof2
+        (cast_ord (esym (Logic.eq_sym (expnD 2 m n)))
+           (Ordinal
+              (mxtens_index_proof1
+                 (cast_ord (esym (etrans (Logic.eq_sym (expnD 2 (m + n) k)) (f_equal (expn 2) H))) i)))))
+      (mxtens_index_proof1
+        (cast_ord (esym (Logic.eq_sym (expnD 2 n k)))
+           (Ordinal (mxtens_index_proof2 (cast_ord (esym (Logic.eq_sym (expnD 2 m (n + k)))) i)))))).
+    rewrite (ordinal_eq (@mxtens_index_proof2 1 1
+        (@cast_ord 1 1 (@esym nat 1 1 (eq_S 0 0 ((@eqP nat_eqType 0 0) (eqxx 0))))%N
+           (@Ordinal 1 (j %/ 1)
+              (@mxtens_index_proof1 1 1
+                 (@cast_ord 1 1
+                    (@esym nat 1 1
+                       (@etrans nat 1 1 1 (eq_S 0 0 ((@eqP nat_eqType 0 0) (eqxx 0)))
+                          (eq_S 0 0 ((@eqP nat_eqType 0 0) (eqxx 0)))))%N j)))))
+     (@mxtens_index_proof1 1 1
+        (@cast_ord 1 1 (@esym nat 1 1 (eq_S 0 0 ((@eqP nat_eqType 0 0) (eqxx 0))))%N
+           (@Ordinal 1 (j %% 1)
+              (@mxtens_index_proof2 1 1
+                 (@cast_ord 1 1 (@esym nat 1 1 (eq_S 0 0 ((@eqP nat_eqType 0 0) (eqxx 0))))%N j)))))).
+      reflexivity.
+        simpl. rewrite !divn1 //.
+        simpl. rewrite (expnD 2 n k). rewrite !modn_def. case: edivnP => p r. case: edivnP => p' r'. simpl. intros.
+          rewrite e in e0. rewrite mulnA in e0. rewrite divnMDl in e0. symmetry. apply (blerp e0).
+          rewrite ltn_divLR. apply (implP i0). rewrite muln_gt0. apply <- andP. split. 
+            rewrite expn_gt0. apply orP. left; auto.
+            rewrite expn_gt0. apply orP. left; auto.
+            rewrite expn_gt0. apply orP. left; auto.
+            apply (implP i1).            rewrite expn_gt0. apply orP. left; auto.
+            rewrite expn_gt0. apply orP. left; auto.
+  rewrite (ordinal_eq (mxtens_index_proof2 (cast_ord (esym (etrans (Logic.eq_sym (expnD 2 (m + n) k)) (f_equal (expn 2) H))) i))
+   (mxtens_index_proof2
+        (cast_ord (esym (Logic.eq_sym (expnD 2 n k)))
+           (Ordinal (mxtens_index_proof2 (cast_ord (esym (Logic.eq_sym (expnD 2 m (n + k)))) i)))))).
+  rewrite (ordinal_eq (@mxtens_index_proof2 1 1
+        (@cast_ord 1 1
+           (@esym nat 1 1
+              (@etrans nat 1 1 1 (eq_S 0 0 ((@eqP nat_eqType 0 0) (eqxx 0)))
+                 (eq_S 0 0 ((@eqP nat_eqType 0 0) (eqxx 0)))))%N j))
+(@mxtens_index_proof2 1 1
+        (@cast_ord 1 1 (@esym nat 1 1 (eq_S 0 0 ((@eqP nat_eqType 0 0) (eqxx 0))))%N
+           (@Ordinal 1 (j %% 1)
+              (@mxtens_index_proof2 1 1
+                 (@cast_ord 1 1 (@esym nat 1 1 (eq_S 0 0 ((@eqP nat_eqType 0 0) (eqxx 0))))%N j)))))).
+    reflexivity.
+       simpl. rewrite !modn1 //.
+       simpl. rewrite (expnD 2 n k). symmetry. apply modn_dvdm. apply dvdn_mull. apply dvdnn.
+Qed.
+
+Lemma blerp: forall n k: nat, (k = 0 -> n = n + k)%N.
+Proof.
+  intros. rewrite H. symmetry. apply addn0.
+Qed.
+Lemma gnarf: forall n k k', k = k'.+1 -> (n + 1 + k' = n + k)%N.
+Proof.
+  intros. rewrite H. rewrite (addnS n k'). rewrite addnAC. Check addSn. rewrite addn1 //.
+Qed.
+Lemma znoits: forall k k', k = k'.+1 -> k.-1 = k'.
+Proof.
+  intros. rewrite H. reflexivity.
+Qed.
 
 (* Combine a list of k 1-qubit vectors into one k-qubit vector. We use the 0-qubit vector as an initial value
    here, as it is the neutral element of the tensor product. *)
-Program Fixpoint combine_tuple_aux (n: nat) (q: qubit_vector_of n) (k: nat) (l: k .-tuple (qubit_vector_of 1)) { struct k }: (qubit_vector_of (n+k)) :=
+Fixpoint combine_tuple_aux (n: nat) (q: qubit_vector_of n) (k: nat) (l: k .-tuple (qubit_vector_of 1)) { struct k }: (qubit_vector_of (n+k)) :=
   (match k as m return (k = m) -> _ with
   | 0     => fun H: (k = 0)%N =>
-             cast q _ 
+             cast q (blerp n H)
   | k'.+1 => fun H: k = k'.+1 =>
-             cast (@combine_tuple_aux n.+1 (cast (@combine n 1 q (@thead k' _ (tcast _ l))) _) k' (tcast _ (behead_tuple l))) _
+             cast (combine_tuple_aux (combine q (thead (tcast H l))) (tcast (znoits H) (behead_tuple l))) (gnarf n H)
   end) (Logic.eq_refl k).
-Obligation 1.
-  intros. rewrite H. symmetry. apply addn0.
-Qed.
-Obligation 2.
-  intros. apply H.
-Qed.
-Obligation 3.
-  intros. rewrite addn1 //.
-Qed.
-Obligation 4.
-  intros. simpl. rewrite H. reflexivity.
-Qed.
-Obligation 5.
-  intros. rewrite H. rewrite addSn. rewrite addnS //.
-Qed.
+
 
 Definition combine_tuple (k: nat) (l: k.-tuple (qubit_vector_of 1)): (qubit_vector_of k) :=
   (combine_tuple_aux zero_qubit l).
@@ -381,32 +456,13 @@ Proof.
   ].
   simpl. rewrite !cast_id. rewrite !tcast_id. generalize t; clear t; case/tupleP. intros h' t.
     rewrite !theadE. rewrite behead_tupleE. rewrite combine0q.
-    rewrite IHk. rewrite IHk. rewrite combine0q. rewrite (IHk [tuple of t] (1%N) h'). 
-    apply val_inj; simpl. rewrite !castmx_comp. 
+    rewrite IHk. rewrite IHk. rewrite combine0q. rewrite (IHk [tuple of t] (1%N) h').
+    rewrite -(combineA h h'). apply cast_irrelevance.
+Qed. 
 
-
-L
-apply val_inj. simpl. apply val_inj; simpl. reflexivity. reflexivity. rewrite -!Eqdep_dec.eq_rect_eq_dec.  unfold combine_tuple_aux_obligation_1.
-simpl; rewrite -!Eqdep_dec.eq_rect_eq_dec; try (intros; apply PeanoNat.Nat.eq_dec); rewrite combineq0; symmetry; apply cast_id.
- 
-  simpl; rewrite -!Eqdep_dec.eq_rect_eq_dec; try (intros; apply PeanoNat.Nat.eq_dec).
-  generalize t; clear t; case/tupleP; intros h' t; rewrite !theadE; rewrite behead_tupleE.
-  rewrite combine0q. rewrite IHk. 1
-Lemma combine_tupleE: forall k (l: k.-tuple (qubit_vector_of 1)) i,
+(*Lemma combine_tupleE: forall k (l: k.-tuple (qubit_vector_of 1)) i,
   vector (combine_tuple l) i 0 =
-  \prod_(n < k) (vector (tnth l n)) (if (select i n) then 1 else 0) 0.
-Proof.
-  intros. unfold combine_tuple. induction k;
-  [ simpl; rewrite !big_ord0; rewrite -Eqdep_dec.eq_rect_eq_dec; unfold zero_qubit;
-    [ rewrite mxE; rewrite ord1 //
-    | intros; apply PeanoNat.Nat.eq_dec
-    ]
-  |
-  ].
-  simpl; rewrite -!Eqdep_dec.eq_rect_eq_dec; try (intros; apply PeanoNat.Nat.eq_dec); rewrite !big_ord_recl.
-  generalize l. clear l. case/tupleP. intros h l.
-  rewrite !theadE. rewrite tnth0. rewrite behead_tupleE. rewrite combine0q.
-
+  \prod_(n < k) (vector (tnth l n)) (if (select i n) then 1 else 0) 0. *)
 
 (* Definition of decomposability. A qubit vector is decomposable if it can be written as the combination of
  * two qubit vectors. It is maximally decomposable if it can be written as a combination of 1-qubit vectors. *)
@@ -418,19 +474,19 @@ Definition decomposable (p: nat) (q: qubit_vector_of p) :=
   exists n m Heq, (@decomposable_aux p q n m Heq).
 
 Definition maximally_decomposable (n: nat) (q: qubit_vector_of n) :=
-  exists (l: list (qubit_vector_of 1) | length l = n), combine_list (proj2_sig l) = q.
+  exists (l: n.-tuple (qubit_vector_of 1)), combine_tuple l = q.
 
 (* Definition of entanglement. A qubit vector is entangled if there are two qubits b1 and b2 such that measuring
  * b1 influences the probability distribution of measuring b2. It is maximally entangled if all qubits in the
  * vector influence each other. It is disentangled if no qubits in the vector influence each other. *)
 Definition disentangled_aux (n: nat) (b1 b2: 'I_n) (q: qubit_vector_of n) :=
-  prob_0 b1 (QubitVectorMixin (measure0_unitary b2 q)) = prob_0 b1 (QubitVectorMixin (measure1_unitary b2 q)) /\
-  prob_1 b1 (QubitVectorMixin (measure0_unitary b2 q)) = prob_1 b1 (QubitVectorMixin (measure1_unitary b2 q)).
+  prob_0 b1 (QubitVector (measure0_unitary b2 q)) = prob_0 b1 (QubitVector (measure1_unitary b2 q)) /\
+  prob_1 b1 (QubitVector (measure0_unitary b2 q)) = prob_1 b1 (QubitVector (measure1_unitary b2 q)).
 
 Definition disentangled (n: nat) (q: qubit_vector_of n) :=
   forall b1 b2, disentangled_aux b1 b2 q.
 
-Definition maximally_entangled (n: nat) (q: qubit_vector_of n):
+Definition maximally_entangled (n: nat) (q: qubit_vector_of n) :=
   forall b1 b2, ~disentangled_aux b1 b2 q.
 
 Lemma frob:
@@ -441,26 +497,9 @@ Proof.
   absurd ((GRing.one (ComplexField.complex_numDomainType R)) == 0 + 0).
     intro. rewrite add0r in H1. rewrite oner_eq0 in H1. inversion H1.
   rewrite -{1}(eqP H). rewrite -{2}(eqP H0).
-  rewrite sum_if_not. apply/eqP. symmetry. apply (vector_is_unit q).
+  rewrite sum_if_not. apply/eqP. symmetry. apply/eqP. apply (vector_is_unit q).
 Qed.
 
 (* Entanglement and decomposability are equivalent. *)
-Theorem decdis n (q: qubit_vector_of n):
-  maximally_decomposable q -> disentangled q.
-Proof.
-  unfold disentangled; unfold maximally_decomposable; unfold disentangled_aux; unfold measure_0; unfold measure_1;
-  unfold prob_0; unfold prob_1; simpl.
-    intros. destruct H. rewrite <- H. clear H. destruct x. unfold combine_list. simpl. split.
-      apply congr_big; try auto.
-      intros.
-    destruct (\sum_(i0 < 2^n | ~~select i0 b2) `|(vector (combine_list_aux zero_qubit e)) i0 0| ^+ 2 == 0) eqn:Hnot.
-    destruct (\sum_(i0 < 2^n | select i0 b2) `|(vector (combine_list_aux zero_qubit e)) i0 0| ^+ 2 == 0) eqn:Heq.
-      destruct (@frob n (combine_list_aux zero_qubit e) b2). split.
-        apply/eqP. apply (eqP Hnot).
-        apply/eqP. apply (eqP Heq).
-      rewrite Hnot; rewrite Heq. rewrite mxE.
-      destruct (select i b2) eqn:Hsel.
-         
-      rewrite (@vector_is_unit n (combine_list_aux zero_qubit e)). rewrite -sum_if_not.
-       
-        
+(* Theorem decdis n (q: qubit_vector_of n):
+  maximally_decomposable q -> disentangled q. *)

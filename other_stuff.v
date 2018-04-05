@@ -135,6 +135,19 @@ Proof.
       destruct H. inversion H.
 Qed.
 
+Lemma orP: forall A B,
+  is_true (A || B) <-> is_true A \/ is_true B.
+Proof.
+  split. intros. destruct A. left; auto.
+  destruct B. right; auto.
+  inversion H.
+  intros. destruct H as [Ha | Hb].
+    destruct A. auto.
+    inversion Ha.
+    destruct B. apply orbT.
+    inversion Hb.
+Qed.
+
 Lemma modn: forall x y z,
  (0 < y)%N -> x %% (z * y) = x %[mod y]%N.
 Proof.
