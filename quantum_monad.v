@@ -77,7 +77,7 @@ Proof.
   | rewrite {1}IHa
   | f_equal; extensionality x; rewrite {1}H
   ];
-  try reflexivity.
+  reflexivity.
   intros; simpl; reflexivity.
   intros; induction ma; simpl;
   [ reflexivity 
