@@ -59,12 +59,12 @@ Fixpoint flatten {A: Type} (l: list (list A)): list A :=
 Module Import VectorNotations *)
 Program Fixpoint evalQIO {n m: nat} {A: Type} (z: QIO A n m)
   (l: list (complex_stuff.R * qubit_vector_of n)):
-  list (complex_stuff.R * qubit_vector_of m * option A) := 
+  list (complex_stuff.R * qubit_vector_of m * A) :=
   match z with
   | QReturn _ a =>
       List.map (fun (x: complex_stuff.R * qubit_vector_of n) =>
         let (p, qs) := x in
-        (p, (cast qs _), Some a)) l
+        (p, (cast qs _), a)) l
   | MkQbit _ _ q g => evalQIO g
       (List.map (fun (x: complex_stuff.R * qubit_vector_of n) => 
         let (p, qs) := x in
@@ -86,7 +86,8 @@ Program Fixpoint evalQIO {n m: nat} {A: Type} (z: QIO A n m)
        let (p, qs) := x in
        measure_p i qs
      ) l))
-  | Error _ _ => nil
+  | Error _ _ =>
+     nil
   end.
 Obligation 2.
   intros. auto.
