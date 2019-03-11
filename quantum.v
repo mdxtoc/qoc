@@ -6,7 +6,7 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Local Open Scope ring_scope.
-Import Num.Theory GRing.Theory.
+Import Num.Theory GRing.Theory ComplexField.
 
 Require Import other_stuff complex_stuff.
 
@@ -186,11 +186,13 @@ Definition select n (i: 'I_(2^n)) (bit: 'I_n) :=
   (i %% (2^(bit + 1)) >= 2^bit)%N.
 
 (* The probabilities that qubit b of qubit vector q measures as 0 or 1 respectively. *)
-Definition prob_0 n b q :=
-  \sum_(i < 2^n | ~~select i b) `|(vector q) i 0| ^+ 2.
 
-Definition prob_1 n b q :=
-  \sum_(i < 2^n | select i b) `|(vector q) i 0| ^+ 2.
+Local Open Scope complex_scope.
+Definition prob_0 {n} b q: R :=
+  \sum_(i < 2^n | ~~select i b) (normc ((vector q) i 0)) ^+ 2.
+
+Definition prob_1 {n} b q: R :=
+  \sum_(i < 2^n | select i b) (normc ((vector q) i 0)) ^+ 2.
 
 (* The new qubit vectors that result after measuring bit b of qubit vector q and getting 0 or 1 respectively. *)
 Definition measure_0 n (b: 'I_n) (q: qubit_vector_of n) :=
@@ -198,7 +200,7 @@ Definition measure_0 n (b: 'I_n) (q: qubit_vector_of n) :=
   then (vector q)
   else (\col_(i < 2^n)
      if ~~(select i b)
-     then (vector q) i 0 / sqrtc (prob_0 b q)
+     then (vector q) i 0 / sqrtc (prob_0 b q)%:C
      else 0).
 
 Definition measure_1 n (b: 'I_n) (q: qubit_vector_of n) :=
@@ -206,7 +208,7 @@ Definition measure_1 n (b: 'I_n) (q: qubit_vector_of n) :=
   then (vector q)
   else (\col_(i < 2^n)
       if select i b
-      then (vector q) i 0 / sqrtc (prob_1 b q)
+      then (vector q) i 0 / sqrtc (prob_1 b q)%:C
       else 0).
 
 (* The proofs that these new vectors are unitary. *)
@@ -240,32 +242,56 @@ Proof.
   ].
 Qed.
 
-Lemma measure0_unitary: forall n b q,
-  \sum_(i < 2^n) `|(measure_0 b q) i 0|^+2 == 1.
+Lemma blerp3: forall x: R,
+  x%:C = 0 -> x = 0.
+Proof. 
+  intros. transitivity (complex.Re (x%:C)).
+    auto.
+    assert (x%:C == 0). apply/eqP. apply H.
+    rewrite (eq_complex x%:C 0) in H0. 
+    destruct (proj1 (andP _ _) H0).
+    rewrite H. auto.
+Qed.
+
+Lemma measure0_unitary: forall n b q,  \sum_(i < 2^n) `|(measure_0 b q) i 0|^+2 == 1.
 Proof.
   move=> n b q. unfold measure_0. unfold prob_0.
-  destruct (\sum_(i0 < 2^n | ~~select i0 b) `|(vector q) i0 0| ^+ 2 == 0) eqn:H.
-    apply (vector_is_unit q).
-    replace (\sum_(i < 2 ^ n) `|(\col_i0 _) i 0|^+2) with
+  destruct (\sum_(i0 < 2^n | ~~select i0 b) (normc ((vector q) i0 0)) ^+ 2 == 0) eqn:H.
+    rewrite H; apply (vector_is_unit q).
+    rewrite H. replace (\sum_(i < 2 ^ n) `|(\col_i0 _) i 0|^+2) with
       (\sum_(i < 2^n) (if ~~select i b then `|vector q i 0 / sqrtc (\sum_(i1 < 2 ^ n | ~~select i1 b) `|(vector q) i1 0| ^+2)| ^+ 2 else 0)).
-      rewrite -!big_mkcond. apply measure_aux. rewrite unitfE. rewrite H //.
-    apply eq_bigr; intros i _; rewrite mxE; destruct (~~select i b);
-    [ reflexivity
-    | auto; rewrite normr0; rewrite expr0n //
-    ].
+    rewrite -!big_mkcond. apply measure_aux. rewrite unitfE.   
+    assert ((\sum_(i < 2^n | ~~select i b) (normc ((vector q) i 0)) ^+ 2)%:C = 
+       \sum_(i < 2^n | ~~select i b) `|q i 0| ^+ 2).
+      rewrite -rcsum. apply eq_bigr. intros. rewrite normc_equiv. rewrite !expr2. simpc. reflexivity.
+    rewrite -H0. apply/eqP. intro. 
+    apply Bool.eq_true_false_abs with (\sum_(i0 < 2^n|~~select i0 b) normc (q i0 0) ^+ 2 == 0).
+    apply/eqP. apply blerp3. apply H1. apply H.
+    apply eq_bigr. intros i _. rewrite mxE.
+    destruct (~~select i b).
+       repeat f_equal. rewrite -rcsum. apply eq_bigr. intros. (* here *)
+       rewrite normc_equiv. rewrite !real_complexE. rewrite !expr2. simpc. reflexivity.
+    auto; rewrite normr0; rewrite expr0n //.
 Qed.
 
 Lemma measure1_unitary: forall n b q,
   \sum_(i < 2^n) `|(measure_1 b q) i 0|^+2 == 1.
 Proof.
   move=> n b q. unfold measure_1. unfold prob_1.
-  destruct (\sum_(i0 < 2^n | select i0 b) `|(vector q) i0 0| ^+ 2 == 0) eqn:H.
-    apply (vector_is_unit q).
-  replace (\sum_(i < 2 ^ n) `|(\col_i0 _) i 0|^+2) with
+  destruct (\sum_(i0 < 2^n | select i0 b) (normc ((vector q) i0 0)) ^+ 2 == 0) eqn:H.
+    rewrite H; apply (vector_is_unit q).
+    rewrite H; replace (\sum_(i < 2 ^ n) `|(\col_i0 _) i 0|^+2) with
     (\sum_(i < 2^n) (if select i b then `|vector q i 0 / sqrtc (\sum_(i1 < 2 ^ n | select i1 b) `|(vector q) i1 0| ^+2)| ^+ 2 else 0)).
-  rewrite -!big_mkcond. apply measure_aux. rewrite unitfE. rewrite H //.
+  rewrite -!big_mkcond. apply measure_aux. rewrite unitfE.
+  assert ((\sum_(i < 2^n | select i b) (normc ((vector q) i 0)) ^+ 2)%:C = 
+       \sum_(i < 2^n | select i b) `|q i 0| ^+ 2).
+    rewrite -rcsum. apply eq_bigr. intros. rewrite normc_equiv. rewrite !expr2. simpc. reflexivity.
+    rewrite -H0. apply/eqP. intro. 
+    apply Bool.eq_true_false_abs with (\sum_(i0 < 2^n|select i0 b) normc (q i0 0) ^+ 2 == 0).
+    apply/eqP. apply blerp3. apply H1. apply H.
   apply eq_bigr; intros i _; rewrite mxE; destruct (select i b);
-  [ reflexivity
+  [ repeat f_equal; rewrite -rcsum; apply eq_bigr; intros;
+    rewrite normc_equiv; rewrite !real_complexE; rewrite !expr2; simpc; reflexivity
   | auto; rewrite normr0; rewrite expr0n //
   ].
 Qed.
@@ -274,7 +300,7 @@ Qed.
  * probability that bit b of qubit vector q is 0 or 1 respectively; the second element of each pair is the
  * new qubit vector that results in each case. *)
 Definition measure_p (n: nat)  (b: 'I_n) (q: qubit_vector_of n):
-           seq (R[i] * qubit_vector_of n) :=
+           seq (R * qubit_vector_of n) :=
   [:: (prob_0 b q, (QubitVector (measure0_unitary b q)));
       (prob_1 b q, (QubitVector (measure1_unitary b q)))].
 
@@ -420,13 +446,13 @@ Proof.
        simpl. rewrite (expnD 2 n k). symmetry. apply modn_dvdm. apply dvdn_mull. apply dvdnn.
 Qed.
 
-Lemma blerp: forall n k: nat, (k = 0 -> n = n + k)%N.
+Lemma blerp2: forall n k: nat, (k = 0 -> n = n + k)%N.
 Proof.
   intros. rewrite H. symmetry. apply addn0.
 Qed.
 Lemma gnarf: forall n k k', k = k'.+1 -> (n + 1 + k' = n + k)%N.
 Proof.
-  intros. rewrite H. rewrite (addnS n k'). rewrite addnAC. Check addSn. rewrite addn1 //.
+  intros. rewrite H. rewrite (addnS n k'). rewrite addnAC. rewrite addn1 //.
 Qed.
 Lemma znoits: forall k k', k = k'.+1 -> k.-1 = k'.
 Proof.
@@ -438,7 +464,7 @@ Qed.
 Fixpoint combine_tuple_aux (n: nat) (q: qubit_vector_of n) (k: nat) (l: k .-tuple (qubit_vector_of 1)) { struct k }: (qubit_vector_of (n+k)) :=
   (match k as m return (k = m) -> _ with
   | 0     => fun H: (k = 0)%N =>
-             cast q (blerp n H)
+             cast q (blerp2 n H)
   | k'.+1 => fun H: k = k'.+1 =>
              cast (combine_tuple_aux (combine q (thead (tcast H l))) (tcast (znoits H) (behead_tuple l))) (gnarf n H)
   end) (Logic.eq_refl k).

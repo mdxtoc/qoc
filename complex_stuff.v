@@ -5,7 +5,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Import GRing.Theory.
+Import GRing.Theory ComplexField.
 Local Open Scope ring_scope.
 
 Parameter R: rcfType.
@@ -34,33 +34,33 @@ Proof.
   intros a b; destruct a as [ar ai]; destruct b as [br bi]; simpc; rewrite -GRing.opprD; reflexivity.
 Qed.
 
-Lemma rcsum: forall I (F: I -> R) (r: seq I) P,
-  (\sum_(i <- r | P) (F i)%:C)%C = ((\sum_(i <- r | P) F i)%:C)%C.
+Lemma rcsum: forall I (F: I -> R) (r: seq I) (P: I -> bool),
+  (\sum_(i <- r | P i) (F i)%:C)%C = ((\sum_(i <- r | P i) F i)%:C)%C.
 Proof.
   move => I F r P. induction r.
     rewrite !big_nil //.
-    rewrite !big_cons; destruct P;
+    rewrite !big_cons; destruct (P a);
     [ rewrite IHr; rewrite rc_add //
     | apply IHr
     ].
 Qed.
    
 Lemma csum: forall I (F: I -> R [i]) (r: seq I) P,
-  ((\sum_(i <- r | P) F i)^*%C) = \sum_(i <- r | P) (fun x => ((F x)^*)%C) i.
+  ((\sum_(i <- r | P i) F i)^*%C) = \sum_(i <- r | P i) (fun x => ((F x)^*)%C) i.
 Proof.
   move => I F r P. induction r.
     rewrite !big_nil. rewrite conjc0 //.
-    rewrite !big_cons. destruct P.
+    rewrite !big_cons. destruct (P a).
       rewrite -conj_add. rewrite IHr. reflexivity.
       apply IHr.
 Qed.
 
 Lemma cprod: forall I (F: I -> R[i]) (r: seq I) P,
-  ((\prod_(i <- r | P) F i)^*%C) = \prod_(i <- r | P) (fun x => ((F x)^*)%C) i.
+  ((\prod_(i <- r | P i) F i)^*%C) = \prod_(i <- r | P i) (fun x => ((F x)^*)%C) i.
 Proof.
   move => I F r P. induction r.
     rewrite !big_nil. apply conjc1.
-    rewrite !big_cons. destruct P.
+    rewrite !big_cons. destruct (P a).
       rewrite -conj_mul. rewrite IHr. reflexivity.
       apply IHr.
 Qed.
@@ -194,3 +194,8 @@ Proof.
   intros. unfold GRing.opp. simpl. rewrite oppr0. auto. 
 Qed.
 
+Lemma normc_equiv:
+  forall (c: R[i]), `|c| = ((normc c)%:C)%C.
+Proof.
+  intros; destruct c as [cr ci]. apply normc_def.
+Qed.
