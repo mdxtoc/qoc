@@ -296,13 +296,13 @@ Proof.
   ].
 Qed.
 
-(* The measure function. measure_p b q returns a list of two pairs; the first element of each pair is the
+(* The measure function. measure_p b q returns a tuple of two pairs; the first element of each pair is the
  * probability that bit b of qubit vector q is 0 or 1 respectively; the second element of each pair is the
  * new qubit vector that results in each case. *)
 Definition measure_p (n: nat)  (b: 'I_n) (q: qubit_vector_of n):
-           seq (R * qubit_vector_of n) :=
-  [:: (prob_0 b q, (QubitVector (measure0_unitary b q)));
-      (prob_1 b q, (QubitVector (measure1_unitary b q)))].
+           (R * qubit_vector_of n) * (R * qubit_vector_of n) :=
+  ((prob_0 b q, (QubitVector (measure0_unitary b q))),
+   (prob_1 b q, (QubitVector (measure1_unitary b q)))).
 
 (* Qubit vector casting. If m = n, then the datatypes (qubit_vector m) and (qubit_vector n) are interchangeable. *)
 Lemma castP:
