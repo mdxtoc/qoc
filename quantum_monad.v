@@ -14,7 +14,7 @@ Inductive QIO (A: Type): nat -> nat -> Type :=
   QReturn: forall {i}, A -> QIO A i i
 | MkQbit: forall {i o}, (qubit_vector_of 1) -> QIO A (S i) o -> QIO A i o
 | ApplyU: forall {i o}, gate_of i -> QIO A i o -> QIO A i o
-| Meas: forall {i o}, 'I_i -> qubit_vector_of i -> (bool -> QIO A i o) -> QIO A i o
+| Meas: forall {i o}, 'I_i -> (* qubit_vector_of i -> *) (bool -> QIO A i o) -> QIO A i o
 | Error: forall {i o}, QIO A i o.
 
 Program Fixpoint qio_bind {i o' o: nat} {A B}
@@ -23,7 +23,7 @@ Program Fixpoint qio_bind {i o' o: nat} {A B}
   | QReturn _ a => f a
   | MkQbit _ _ q g => MkQbit q (qio_bind g f)
   | ApplyU _ _ u g => ApplyU u (qio_bind g f)
-  | Meas _ _ i x g => Meas i x (fun b => qio_bind (g b) f)
+  | Meas _ _ i g => Meas i (fun b => qio_bind (g b) f)
   | Error _ _ => Error B
   end.
 Solve All Obligations with intros; symmetry; assumption.
@@ -75,17 +75,14 @@ Program Fixpoint evalQIO {n m: nat} {A: Type} (z: QIO A n m)
         let (p, qs) := x in
         (p, (apply u qs))
       ) l)
-  | Meas _ _ i x g => evalQIO (g false)
-     (flatten (List.map (fun (x: complex_stuff.R * qubit_vector_of n) =>
-       let (p, qs) := x in
-       measure_p i qs
-     ) l))
-     ++
-     evalQIO (g true)
-       (flatten (List.map (fun (x: complex_stuff.R * qubit_vector_of n) =>
-       let (p, qs) := x in
-       measure_p i qs
-     ) l))
+  | Meas _ _ i g => evalQIO (g false)
+      (flatten (List.map (fun (x: complex_stuff.R * qubit_vector_of n) =>
+        let (p, qs) := x in
+        let (x0, x1) := measure_p i qs in
+        let (p0, q0) := x0 in
+        let (p1, q1) := x1 in
+        [:: (p * p0, q0); (p * p1, q1)]
+      ) l))
   | Error _ _ =>
      nil
   end.

@@ -459,6 +459,7 @@ Proof.
   intros. rewrite H. reflexivity.
 Qed.
 
+Check castmx_comp.
 (* Combine a list of k 1-qubit vectors into one k-qubit vector. We use the 0-qubit vector as an initial value
    here, as it is the neutral element of the tensor product. *)
 Fixpoint combine_tuple_aux (n: nat) (q: qubit_vector_of n) (k: nat) (l: k .-tuple (qubit_vector_of 1)) { struct k }: (qubit_vector_of (n+k)) :=

@@ -2,6 +2,8 @@ complex_stuff.v
 other_stuff.v
 quantum.v
 GMonad.v
+quantum_monad.v
 
 -R . quantum
 -R /home/jaap1/progs/math-comp/mathcomp mathcomp
+-R /home/jaap1/progs/real-closed/theories mathcomp.real_closed
