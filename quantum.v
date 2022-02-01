@@ -258,7 +258,7 @@ Proof.
   move=> n b q. unfold measure_0. unfold prob_0.
   destruct (\sum_(i0 < 2^n | ~~select i0 b) (normc ((vector q) i0 0)) ^+ 2 == 0) eqn:H.
     rewrite H; apply (vector_is_unit q).
-    rewrite H. replace (\sum_(i < 2 ^ n) `|(\col_i0 _) i 0|^+2) with
+    rewrite H. replace (\sum_(i < 2 ^ n) _) with
       (\sum_(i < 2^n) (if ~~select i b then `|vector q i 0 / sqrtc (\sum_(i1 < 2 ^ n | ~~select i1 b) `|(vector q) i1 0| ^+2)| ^+ 2 else 0)).
     rewrite -!big_mkcond. apply measure_aux. rewrite unitfE.   
     assert ((\sum_(i < 2^n | ~~select i b) (normc ((vector q) i 0)) ^+ 2)%:C = 
@@ -280,7 +280,7 @@ Proof.
   move=> n b q. unfold measure_1. unfold prob_1.
   destruct (\sum_(i0 < 2^n | select i0 b) (normc ((vector q) i0 0)) ^+ 2 == 0) eqn:H.
     rewrite H; apply (vector_is_unit q).
-    rewrite H; replace (\sum_(i < 2 ^ n) `|(\col_i0 _) i 0|^+2) with
+    rewrite H; replace (\sum_(i < 2 ^ n) _) with
     (\sum_(i < 2^n) (if select i b then `|vector q i 0 / sqrtc (\sum_(i1 < 2 ^ n | select i1 b) `|(vector q) i1 0| ^+2)| ^+ 2 else 0)).
   rewrite -!big_mkcond. apply measure_aux. rewrite unitfE.
   assert ((\sum_(i < 2^n | select i b) (normc ((vector q) i 0)) ^+ 2)%:C = 

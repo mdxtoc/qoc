@@ -46,22 +46,22 @@ Proof.
     replace (\sum_(i < m | P1 i) F1 i) with (\sum_(i < m) (if P1 i then F1 i else 0)).
     replace (\sum_(i < n | P2 i) F2 i) with (\sum_(i < n) (if P2 i then F2 i else 0)).
   generalize P1 P2 F1 F2 Heq H H0. clear P1 P2 F1 F2 H H0 Heq. generalize m n. clear m n.
-  double induction m n.
-    intros; rewrite !big_ord0 //.
+  induction m; induction n.
+  intros; rewrite !big_ord0 //.
     intros; inversion Heq.
     intros; inversion Heq.
-    intros. clear H n0 m.
+    intros. (*clear H n0 m.*)
       rewrite !big_ord_recl. inversion Heq.
-      rewrite (H0 n _ (fun x => P2 (fintype.lift ord0 x)) _ (fun x => F2 (fintype.lift ord0 x))).
-      rewrite H1. rewrite H2. replace (F2 (cast_ord Heq ord0)) with (F2 ord0).
+      rewrite (IHm n _ (fun x => P2 (fintype.lift ord0 x)) _ (fun x => F2 (fintype.lift ord0 x))).
+      rewrite H. rewrite H0. replace (F2 (cast_ord Heq ord0)) with (F2 ord0).
       replace (P2 (cast_ord Heq ord0)) with (P2 ord0). reflexivity.
-      compute. rewrite (eq_irrelevance (ltn0Sn n) (cast_ord_proof (Ordinal (ltn0Sn n1)) Heq)). reflexivity.
-      compute. rewrite (eq_irrelevance (ltn0Sn n) (cast_ord_proof (Ordinal (ltn0Sn n1)) Heq)). reflexivity.
-    intros; rewrite H1. compute. rewrite (eq_irrelevance (@cast_ord_proof (S n1) (S n) (@Ordinal (S n1) _ (@lift_subproof (S n1) 0 x)) Heq)
-       (@lift_subproof (S n) 0 (@Ordinal n _ (@cast_ord_proof n1 n x H3)))
+      compute. rewrite (eq_irrelevance (ltn0Sn n) (cast_ord_proof (Ordinal (ltn0Sn m)) Heq)). reflexivity.
+      compute. rewrite (eq_irrelevance (ltn0Sn n) (cast_ord_proof (Ordinal (ltn0Sn m)) Heq)). reflexivity.
+    intros; rewrite H. compute. rewrite (eq_irrelevance (@cast_ord_proof (S m) (S n) (@Ordinal (S m) _ (@lift_subproof (S m) 0 x)) Heq)
+       (@lift_subproof (S n) 0 (@Ordinal n _ (@cast_ord_proof m n x H2)))
      ). reflexivity.
-    intros; rewrite H2. compute. rewrite (eq_irrelevance (@cast_ord_proof (S n1) (S n) (@Ordinal (S n1) _ (@lift_subproof (S n1) 0 x)) Heq)
-       (@lift_subproof (S n) 0 (@Ordinal n _ (@cast_ord_proof n1 n x H3)))
+    intros; rewrite H0. compute. rewrite (eq_irrelevance (@cast_ord_proof (S m) (S n) (@Ordinal (S m) _ (@lift_subproof (S m) 0 x)) Heq)
+       (@lift_subproof (S n) 0 (@Ordinal n _ (@cast_ord_proof m n x H2)))
      ). reflexivity.
    rewrite -big_mkcond. reflexivity. rewrite -big_mkcond. reflexivity.
 Qed.
@@ -97,21 +97,21 @@ Qed.
 Lemma blerp: forall a b c d x, 
   (a * x + b = c * x + d -> b < x -> d < x -> a = c /\ b = d)%N.
 Proof.
-  intros. generalize a c H. clear a c H. double induction a c.
+  intros. generalize a c H. clear a c H. induction a; induction c.
     split. reflexivity. rewrite !mul0n in H. rewrite !add0n in H. exact H.
     rewrite !mul0n. rewrite !add0n. intros.
-      absurd (b < x)%N. rewrite H2. apply leq_lt. apply leq_trans with (n.+1 * x)%N.
+      absurd (b < x)%N. rewrite H. apply leq_lt. apply leq_trans with (c.+1 * x)%N.
         apply leq_pmull. auto. apply leq_addr.
         apply H0.
     rewrite !mul0n. rewrite !add0n. intros.
-      absurd (d < x)%N. rewrite -H2. apply leq_lt. apply leq_trans with (n.+1 * x)%N.
+      absurd (d < x)%N. rewrite -H. apply leq_lt. apply leq_trans with (a.+1 * x)%N.
         apply leq_pmull. auto. apply leq_addr.
         apply H1.
-   intros. assert (n0 * x + b = n * x + d)%N.
-     rewrite !mulSnr in H3. rewrite addnAC in H3. rewrite (addnAC (n*x)%N x d) in H3.
-     apply/eqP. rewrite -(eqn_add2r x). apply/eqP. apply H3. split.
-       f_equal. apply (proj1 (H2 n H4)).
-       apply (proj2 (H2 n H4)).
+   intros. assert (a * x + b = c * x + d)%N.
+     rewrite !mulSnr in H. rewrite addnAC in H. rewrite (addnAC (c*x)%N x d) in H.
+     apply/eqP. rewrite -(eqn_add2r x). apply/eqP. apply H. split.
+       f_equal. apply (proj1 (IHa c H2)).
+       apply (proj2 (IHa c H2)).
 Qed.
 
 Lemma implP: forall A B,
